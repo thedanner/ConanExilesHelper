@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using ConanExilesHelper.Discord.Interfaces.Events;
 using ConanExilesHelper.Discord.Modules;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -35,10 +34,8 @@ public class CommandAndEventHandler : IDisposable
     public async Task InitializeAsync()
     {
         _client.ButtonExecuted += HandleButtonExecutedAsync;
-        _client.MessageReceived += HandleMessageReceivedAsync;
-        _client.ReactionAdded += HandleReactionAddedAsync;
 
-        await _interactionService.AddModulesAsync(typeof(MinecraftPlayersInteractiveModule).Assembly, _serviceProvider);
+        await _interactionService.AddModulesAsync(typeof(ConanExilesPlayersInteractiveModule).Assembly, _serviceProvider);
 
         _client.InteractionCreated += HandleInteraction;
     }
@@ -47,21 +44,6 @@ public class CommandAndEventHandler : IDisposable
     {
         var ctx = new SocketInteractionContext<SocketMessageComponent>(_client, interaction);
         await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
-    }
-
-    private async Task HandleMessageReceivedAsync(SocketMessage message)
-    {
-        var implementingServices = _serviceProvider.GetServices<IHandleMessageReceivedAsync>();
-
-        await Task.WhenAll(implementingServices.Select(s => s.HandleMessageReceivedAsync(message)));
-    }
-
-    private async Task HandleReactionAddedAsync(Cacheable<IUserMessage, ulong> maybeCachedMessage,
-        Cacheable<IMessageChannel, ulong> maybeCachedChannel, SocketReaction reaction)
-    {
-           var implementingServices = _serviceProvider.GetServices<IHandleReactionAddedAsync>();
-    
-        await Task.WhenAll(implementingServices.Select(s => s.HandleReactionAddedAsync(maybeCachedMessage, maybeCachedChannel, reaction)));
     }
 
     private async Task HandleInteraction(SocketInteraction arg)
@@ -93,8 +75,6 @@ public class CommandAndEventHandler : IDisposable
             if (disposing)
             {
                 _client.ButtonExecuted -= HandleButtonExecutedAsync;
-                _client.MessageReceived -= HandleMessageReceivedAsync;
-                _client.ReactionAdded -= HandleReactionAddedAsync;
                 _client.InteractionCreated -= HandleInteraction;
 
                 _interactionService?.Dispose();

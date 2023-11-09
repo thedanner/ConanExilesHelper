@@ -31,9 +31,9 @@ public class ConanExilesPingServiceTests
     public async Task TestPingAsync()
     {
         // Arrange
-        var pinger = new ConanExilesPingService(
-            new NullLogger<ConanExilesPingService>(),
-            new PingThrottler());
+        var pinger = new PingService(
+            new NullLogger<PingService>(),
+            new CommandThrottler());
         var serverEntry = _conanExilesSettings.Servers[0];
 
         // Act

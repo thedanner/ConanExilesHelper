@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 namespace ConanExilesHelper.Games.ConanExiles;
 
 // Adapted from https://gist.github.com/csh/2480d14fbbb33b4bbae3
-public class ConanExilesPingService : IConanExilesPingService
+public class PingService : IPingService
 {
     private static readonly object _lock = new();
 
-    private readonly ILogger<ConanExilesPingService> _logger;
-    private readonly IPingThrottler _pingThrottler;
+    private readonly ILogger<PingService> _logger;
+    private readonly ICommandThrottler _pingThrottler;
 
-    public ConanExilesPingService(ILogger<ConanExilesPingService> logger, IPingThrottler pingThrottler)
+    public PingService(ILogger<PingService> logger, ICommandThrottler pingThrottler)
     {
         _logger = logger;
         _pingThrottler = pingThrottler;
@@ -26,7 +26,7 @@ public class ConanExilesPingService : IConanExilesPingService
     {
         lock (_lock)
         {
-            if (!_pingThrottler.TryCanPing()) return null;
+            if (!_pingThrottler.TryCanRunCommand()) return null;
         }
 
         var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);

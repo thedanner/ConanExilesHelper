@@ -17,15 +17,15 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
     private const string CommandName = "who";
 
     private readonly ILogger<ConanExilesPlayersInteractiveModule> _logger;
-    private readonly IConanExilesPingService _conanExilesPingService;
+    private readonly IPingService _pingService;
     private readonly ConanExilesSettings? _conanExilesSettings;
 
     public ConanExilesPlayersInteractiveModule(ILogger<ConanExilesPlayersInteractiveModule> logger,
         IOptions<ConanExilesSettings>? conanExilesSettings,
-        IConanExilesPingService conanExilesPingService)
+        IPingService pingService)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _conanExilesPingService = conanExilesPingService ?? throw new ArgumentNullException(nameof(conanExilesPingService));
+        _pingService = pingService ?? throw new ArgumentNullException(nameof(pingService));
         _conanExilesSettings = conanExilesSettings?.Value;
     }
 
@@ -56,7 +56,7 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
 
             if (server is null) return;
 
-            var response = await _conanExilesPingService.PingAsync(server.QueryHostname, server.QueryPort);
+            var response = await _pingService.PingAsync(server.QueryHostname, server.QueryPort);
 
             if (response is null)
             {

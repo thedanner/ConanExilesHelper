@@ -4,13 +4,9 @@ using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
 using ConanExilesHelper.Discord.Handlers;
-using ConanExilesHelper.Discord.Interfaces;
-using ConanExilesHelper.Discord.Interfaces.Events;
 using ConanExilesHelper.Games.ConanExiles;
-using ConanExilesHelper.Games.Minecraft;
 using ConanExilesHelper.Helpers;
 using ConanExilesHelper.Models.Configuration;
-using ConanExilesHelper.Scheduling;
 using ConanExilesHelper.Services;
 using ConanExilesHelper.Wrappers.Rcon;
 using Microsoft.Extensions.Configuration;
@@ -18,11 +14,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.EventLog;
-using Microsoft.Extensions.Options;
 using NLog.Extensions.Logging;
-using Quartz;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -117,14 +110,9 @@ public class Program
     {
         var config = hostContext.Configuration!;
 
-        serviceCollection.Configure<DiscordSettings>(config.GetSection("discordSettings"));
-        serviceCollection.Configure<Left4DeadSettings>(config.GetSection("left4deadSettings"));
-        serviceCollection.Configure<MinecraftSettings>(config.GetSection("minecraft"));
-        serviceCollection.Configure<ConanExilesSettings>(config.GetSection("conanExiles"));
 
-        serviceCollection.Configure<ShiftCodeSettings>(config.GetSection("shiftCodes"));
-        serviceCollection.Configure<List<TaskDefinition>>(config.GetSection("tasks"));
-        serviceCollection.Configure<List<UserMapping>>(config.GetSection("userMappings"));
+        serviceCollection.Configure<DiscordSettings>(config.GetSection("discordSettings"));
+        serviceCollection.Configure<ConanExilesSettings>(config.GetSection("conanExilesSettings"));
 
         serviceCollection.AddSingleton(new HttpClient());
 
@@ -148,15 +136,11 @@ public class Program
                 });
         }
 
-        serviceCollection.AddSingleton<IPingThrottler, PingThrottler>();
-        serviceCollection.AddTransient<IMinecraftPingService, MinecraftPingService>();
-        serviceCollection.AddTransient<IConanExilesPingService, ConanExilesPingService>();
+        serviceCollection.AddSingleton<ICommandThrottler, CommandThrottler>();
+        serviceCollection.AddTransient<IPingService, PingService>();
+        serviceCollection.AddTransient<IRestartService, RestartService>();
 
         serviceCollection.AddTransient<IDiscordConnectionBootstrapper, DiscordConnectionBootstrapper>();
-
-        serviceCollection.AddTransient<IDiscordChatMover, DiscordChatMover>();
-
-        serviceCollection.AddTransient<ISprayModuleCommandResolver, SprayModuleCommandResolver>();
 
         serviceCollection.AddSingleton<CommandService>();
         serviceCollection.AddSingleton<InteractionService>();
@@ -167,178 +151,30 @@ public class Program
             {
                 GatewayIntents = GatewayIntents.Guilds
                     | GatewayIntents.GuildIntegrations
-                    | GatewayIntents.GuildVoiceStates
-                    | GatewayIntents.GuildPresences // Needed to know which users are in which voice channels
-                    | GatewayIntents.GuildMessages
-                    | GatewayIntents.GuildMessageReactions
-                    | GatewayIntents.DirectMessages
-                    | GatewayIntents.DirectMessageReactions
-                    // Needed for the SHiFT code bridge.
-                    // This also needs the Priveleged Gateway Intent for Message Content Intent enabled in the developer portal.
-                    // https://discord.com/developers/applications
-                    | GatewayIntents.MessageContent
             });
         });
 
         serviceCollection.AddSingleton<CommandAndEventHandler>();
 
-        var serverInfo = config.GetSection("left4deadSettings")?.Get<Left4DeadSettings>()?.ServerInfo;
+        var serverInfo = config.GetSection("conanExilesSettings")?.Get<ConanExilesSettings>()?.Servers?.FirstOrDefault();
 
         if (serverInfo is not null)
         {
-            serviceCollection.AddTransient(sp => new RCON(new IPEndPoint(IPAddress.Parse(serverInfo.Ip), serverInfo.Port), serverInfo.RconPassword));
-            serviceCollection.AddTransient<IRCONWrapperFactory, RCONWrapperFactory>();
-        }
-
-        // More specific handlers
-        var allLoadedTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(x => x.GetTypes())
-            .ToList()
-            .AsReadOnly();
-
-        BindEventHandlers(allLoadedTypes, serviceCollection);
-
-        BindTasks(allLoadedTypes, serviceCollection);
-
-        ConfigureScheduler(serviceCollection, config);
-    }
-
-    private static void BindEventHandlers(IReadOnlyList<Type> allLoadedTypes, IServiceCollection serviceCollection)
-    {
-        var handlerTypes = new List<Type>();
-        var eventInterfaceTypes = new List<Type>();
-
-        // Do all the filtering and sorting in one pass over the loaded types list.
-        foreach (var type in allLoadedTypes)
-        {
-            if (typeof(IHandleDiscordEvents).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            IPAddress? serverIp;
+            if (!IPAddress.TryParse(serverInfo.Hostname, out serverIp))
             {
-                handlerTypes.Add(type);
-            }
-            else if (type != typeof(IHandleDiscordEvents)
-                && typeof(IHandleDiscordEvents).IsAssignableFrom(type)
-                && type.IsInterface)
-            {
-                eventInterfaceTypes.Add(type);
-            }
-        }
-
-        foreach (var handlerType in handlerTypes)
-        {
-            foreach (var implmenetedHandlerInterface in handlerType.GetInterfaces().Intersect(eventInterfaceTypes))
-            {
-                serviceCollection.AddTransient(implmenetedHandlerInterface, handlerType);
-            }
-        }
-    }
-
-    private static void BindTasks(IReadOnlyList<Type> allLoadedTypes, IServiceCollection serviceCollection)
-    {
-        var handlerTypes = new List<Type>();
-
-        // Do all the filtering and sorting in one pass over the loaded types list.
-        foreach (var type in allLoadedTypes)
-        {
-            if (typeof(ITask).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
-            {
-                handlerTypes.Add(type);
-            }
-        }
-
-        var duplicatedNames = handlerTypes
-            .GroupBy(t => t.Name)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-        if (duplicatedNames.Any())
-        {
-            // If this comes up, we may need to create an attribute that allows a custom name to be specified or something.
-            throw new Exception(
-                "Found tasks with duplicate names (note that only the class name and no part of the namespace is " +
-                "used as the task name, and therefore class names must be unique: " +
-                string.Join(", ", duplicatedNames));
-        }
-
-        foreach (var handlerType in handlerTypes)
-        {
-            serviceCollection.AddTransient(handlerType);
-        }
-
-        // Technique borrowed from
-        // https://dejanstojanovic.net/aspnet/2018/december/registering-multiple-implementations-of-the-same-interface-in-aspnet-core/
-        serviceCollection.AddTransient<Func<string, ITask>>(serviceProvider => key =>
-        {
-            var type = handlerTypes.FirstOrDefault(t => t.Name == key);
-            if (type is null)
-            {
-                throw new Exception($"Couldn't find an ITask with class name of '{key}'.");
-            }
-            var task = (ITask)serviceProvider.GetRequiredService(type);
-            return task;
-        });
-    }
-
-    private static void ConfigureScheduler(IServiceCollection serviceCollection, IConfiguration config)
-    {
-        var serviceProvider = serviceCollection.BuildServiceProvider();
-
-        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-
-        var tasks = serviceProvider.GetRequiredService<IOptions<List<TaskDefinition>>>().Value;
-
-        var tasksGroupedByName = tasks.GroupBy(t => t.Name);
-        var replicatedNamed = tasksGroupedByName.Where(g => g.Count() > 1);
-        if (replicatedNamed.Any())
-        {
-            throw new Exception("Multiple tasks were found with each of the following names: " +
-                string.Join(", ", replicatedNamed.Select(n => $"\"{n.Key}\"")));
-        }
-
-        serviceCollection.AddQuartz(q =>
-        {
-            q.UseDefaultThreadPool(tp =>
-            {
-                tp.MaxConcurrency = 1;
-            });
-
-            foreach (var taskSetting in tasks)
-            {
-                if (string.IsNullOrEmpty(taskSetting.Name))
+                var addresslist = Dns.GetHostAddresses(serverInfo.Hostname);
+                if (addresslist.Any())
                 {
-                    throw new Exception($"A task is missing a {nameof(taskSetting.Name)}.");
+                    serverIp = addresslist.First();
                 }
-
-                logger.LogInformation("Creating task in scheduler for \"{taskName}\".", taskSetting.Name);
-
-                var jobKey = new JobKey("JobRunner");
-
-                q.AddJob<JobRunner>(jobKey, j => j
-                    .WithDescription("Job runner")
-                );
-
-                if (string.IsNullOrEmpty(taskSetting.ClassName))
-                {
-                    throw new Exception($"The task definition for the task \"{0}\" is missing {nameof(taskSetting.ClassName)}.");
-                }
-
-                var jobData = new JobDataMap();
-                jobData.Put(JobRunner.KeyTaskName, taskSetting.Name);
-                jobData.Put(JobRunner.KeyClassName, taskSetting.ClassName);
-
-                q.AddTrigger(t => t
-                    .WithIdentity(taskSetting.Name)
-                    .WithCronSchedule(taskSetting.CronSchedule)
-                    .ForJob(jobKey)
-                    .UsingJobData(jobData)
-                );
             }
-        });
-        serviceCollection.AddTransient<JobRunner>();
 
-        serviceCollection.AddQuartzHostedService(options =>
-        {
-            // when shutting down we want jobs to complete gracefully
-            options.WaitForJobsToComplete = true;
-        });
+            if (serverIp is not null)
+            {
+                serviceCollection.AddTransient(sp => new RCON(new IPEndPoint(serverIp, serverInfo.RconPort), serverInfo.RconPassword));
+                serviceCollection.AddTransient<IRCONWrapperFactory, RCONWrapperFactory>();
+            }
+        }
     }
 }

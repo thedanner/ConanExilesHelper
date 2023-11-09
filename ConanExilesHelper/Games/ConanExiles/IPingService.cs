@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace ConanExilesHelper.Games.ConanExiles;
 
-public interface IConanExilesPingService
+public interface IPingService
 {
     Task<GameServer<ConanExilesRules>?> PingAsync(string hostname, ushort queryPort);
 }

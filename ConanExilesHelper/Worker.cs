@@ -20,7 +20,6 @@ public class Worker : BackgroundService, IDisposable
 {
     private readonly ILogger<Worker> _logger;
     private readonly IDiscordConnectionBootstrapper _bootstrapper;
-    private readonly List<UserMapping>? _userMappings;
 
     // Singleton IDisposables
     private readonly DiscordSocketClient _client;
@@ -29,14 +28,12 @@ public class Worker : BackgroundService, IDisposable
     public Worker(
         ILogger<Worker> logger,
         IDiscordConnectionBootstrapper bootstrapper,
-        IOptions<List<UserMapping>>? userMappings,
         // Singleton IDisposables or objects that can be started and stopped.
         DiscordSocketClient client,
         CommandAndEventHandler commandHandler)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _bootstrapper = bootstrapper ?? throw new ArgumentNullException(nameof(bootstrapper));
-        _userMappings = userMappings?.Value;
 
         // Singleton IDisposables or objects that can be started and stopped.
         _client = client ?? throw new ArgumentNullException(nameof(client));
@@ -47,11 +44,6 @@ public class Worker : BackgroundService, IDisposable
     {
         try
         {
-            if (_userMappings is not null)
-            {
-                _logger.LogDebug("Last user mapping entry: {lastUserMapping}", _userMappings.Last());
-            }
-
             await _commandHandler.InitializeAsync();
 
             // Try every 15 seconds (4 times a minute) for 15 minutes.

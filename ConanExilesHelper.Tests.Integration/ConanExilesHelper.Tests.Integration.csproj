@@ -24,7 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ConanExilesHelper.Sprays\ConanExilesHelper.Sprays.csproj" />
     <ProjectReference Include="..\ConanExilesHelper\ConanExilesHelper.csproj" />
   </ItemGroup>
 
