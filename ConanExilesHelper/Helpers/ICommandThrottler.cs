@@ -1,6 +1,8 @@
-﻿namespace ConanExilesHelper.Helpers;
+﻿using System.Threading.Tasks;
+
+namespace ConanExilesHelper.Helpers;
 
 public interface ICommandThrottler
 {
-    bool TryCanRunCommand();
+    Task<bool> TryCanRunCommandAsync();
 }

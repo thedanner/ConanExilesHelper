@@ -14,28 +14,29 @@ namespace ConanExilesHelper.Discord.Modules;
 
 public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketInteractionContext>
 {
-    private const string CommandName = "who";
-
     private readonly ILogger<ConanExilesPlayersInteractiveModule> _logger;
+    private readonly ConanExilesSettings? _settings;
     private readonly IPingService _pingService;
-    private readonly ConanExilesSettings? _conanExilesSettings;
+    private readonly IRestartService _restartService;
 
     public ConanExilesPlayersInteractiveModule(ILogger<ConanExilesPlayersInteractiveModule> logger,
         IOptions<ConanExilesSettings>? conanExilesSettings,
-        IPingService pingService)
+        IPingService pingService,
+        IRestartService restartService)
     {
+        _settings = conanExilesSettings?.Value;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _pingService = pingService ?? throw new ArgumentNullException(nameof(pingService));
-        _conanExilesSettings = conanExilesSettings?.Value;
+        _restartService = restartService ?? throw new ArgumentNullException(nameof(restartService));
     }
 
-    [SlashCommand(CommandName, "Gets who's playing on our Conan Exiles server.")]
-    public async Task HandleCommandAsync()
+    [SlashCommand("who", "Gets who's playing on our Conan Exiles server.")]
+    public async Task HandlePingAsync()
     {
         await DeferAsync();
         await Task.Delay(Constants.DelayAfterCommand);
 
-        if (_conanExilesSettings is null)
+        if (_settings is null)
         {
             await DeleteOriginalResponseAsync();
             await Task.Delay(Constants.DelayAfterCommand);
@@ -44,16 +45,13 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
 
         try
         {
-            if (_conanExilesSettings.ChannelIdFilter?.Any() == true)
+            if (_settings.ChannelIdFilter?.Any() == true)
             {
-                var channelFilter = _conanExilesSettings.ChannelIdFilter!;
+                var channelFilter = _settings.ChannelIdFilter!;
                 if (!channelFilter.Contains(Context.Channel.Id)) return;
             }
 
-            var defaultServerName = _conanExilesSettings.DefaultServerName ?? "";
-            //var server = _conanExilesSettings.Servers.FirstOrDefault(s => s.Name == defaultServerName)
-            //    ?? _conanExilesSettings.Servers.FirstOrDefault();
-            var server = _conanExilesSettings.Servers;
+            var server = _settings.Server;
 
             if (server is null) return;
 
@@ -98,7 +96,57 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesPlayersInteractiveModule), nameof(HandleCommandAsync));
+            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesPlayersInteractiveModule), nameof(HandlePingAsync));
+
+            await FollowupAsync($"Sorry, there was an error. My logs have more information.");
+        }
+    }
+
+    [SlashCommand("restart", "Restarts our Conan Exiles server if no one's playing.")]
+    public async Task HandleRestartAsync()
+    {
+        await DeferAsync();
+        await Task.Delay(Constants.DelayAfterCommand);
+
+        if (_settings is null)
+        {
+            await DeleteOriginalResponseAsync();
+            await Task.Delay(Constants.DelayAfterCommand);
+            return;
+        }
+
+        try
+        {
+            if (_settings.ChannelIdFilter?.Any() == true)
+            {
+                var channelFilter = _settings.ChannelIdFilter!;
+                if (!channelFilter.Contains(Context.Channel.Id)) return;
+            }
+
+            var server = _settings.Server;
+
+            if (server is null) return;
+
+            var response = await _restartService.RestartAsync();
+
+            string message;
+            switch (response)
+            {
+                case RestartResponse.Success: message = "Server restarted! Please wait a couple of minutes before you try connecting."; break;
+                case RestartResponse.Exception: message = "An error has occurred, sorry :("; break;
+                case RestartResponse.RestartInProgress: message = "A restart request is already in progress, please wait a couple of minutes."; break;
+                case RestartResponse.ServerNotEmpty: message = "The server isn't empty."; break;
+                case RestartResponse.CouldntFindServerProcess: message = "I'm having trouble checking if the server is running or not."; break;
+                case RestartResponse.Throttled: message = "A restart happened not too long ago, please wait a couple of minutes."; break;
+                case RestartResponse.InvalidRconPassword: message = "I have an incorrect RCON password configured."; break;
+                default: message = $"I don't have a message for whatever happened, sorry ({response})."; break;
+            }
+
+            await FollowupAsync(message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesPlayersInteractiveModule), nameof(HandleRestartAsync));
 
             await FollowupAsync($"Sorry, there was an error. My logs have more information.");
         }

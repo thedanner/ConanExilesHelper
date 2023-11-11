@@ -10,8 +10,6 @@ using ConanExilesHelper.Games.ConanExiles;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using System.Net;
-using System.Linq;
 using System.Runtime.Versioning;
 
 namespace ConanExilesHelper.Tests.Integration.ConanExiles;
@@ -49,18 +47,6 @@ public class ConanExilesTests
     {
         // Arrange
         var options = _host.Services.GetRequiredService<IOptions<ConanExilesSettings>>();
-        var settings = options.Value;
-        var server = settings.Servers;
-
-        IPAddress? serverIp;
-        if (!IPAddress.TryParse(server.Hostname, out serverIp))
-        {
-            var addresslist = Dns.GetHostAddresses(server.Hostname);
-            if (addresslist.Any())
-            {
-                serverIp = addresslist.First();
-           }
-        }
 
         var pingService = new PingService(new NullLogger<PingService>(), new CommandThrottler());
         var restartService = new RestartService(
@@ -69,9 +55,9 @@ public class ConanExilesTests
             pingService);
 
         // Act
-        var response = await restartService.TryRestartAsync();
+        var response = await restartService.RestartAsync();
 
         // Assert
-        response.Should().BeTrue();
+        response.Should().Be(RestartResponse.Success);
     }
 }

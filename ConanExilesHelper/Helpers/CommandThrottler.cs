@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ConanExilesHelper.Helpers;
 
 public class CommandThrottler : ICommandThrottler
 {
-    private readonly object _lock = new();
+    private readonly SemaphoreSlim _semaphore = new(1);
 
     private readonly TimeSpan _minimumWait;
 
@@ -22,9 +24,11 @@ public class CommandThrottler : ICommandThrottler
         _minimumWait = minimumWait;
     }
 
-    public bool TryCanRunCommand()
+    public async Task<bool> TryCanRunCommandAsync()
     {
-        lock (_lock)
+        await _semaphore.WaitAsync();
+
+        try
         {
             var now = DateTimeOffset.Now;
             if (_lastCommand + _minimumWait < now)
@@ -33,6 +37,10 @@ public class CommandThrottler : ICommandThrottler
                 return true;
             }
             return false;
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 }

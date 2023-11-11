@@ -1,16 +1,15 @@
 ﻿using ConanExilesHelper.Helpers;
 using ConanExilesHelper.Models.Configuration;
-using IniParser;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using RconSharp;
 
 namespace ConanExilesHelper.Games.ConanExiles;
@@ -18,10 +17,12 @@ namespace ConanExilesHelper.Games.ConanExiles;
 public class RestartService : IRestartService
 {
     private static readonly SemaphoreSlim _semaphore = new(1);
+    private static readonly ICommandThrottler _commandThrottler = new CommandThrottler(TimeSpan.FromMinutes(5));
 
     private readonly ILogger<RestartService> _logger;
     private readonly ConanExilesSettings _settings;
     private readonly IPingService _pingService;
+
 
     public RestartService(ILogger<RestartService> logger,
         IOptions<ConanExilesSettings>? settings,
@@ -33,59 +34,58 @@ public class RestartService : IRestartService
     }
 
     [SupportedOSPlatform("windows")]
-    public async Task<bool> TryRestartAsync()
+    public async Task<RestartResponse> RestartAsync()
     {
-        // See https://github.com/Dateranoth/ConanExilesServerUtility/blob/master/src/ConanServerUtility/ConanServerUtility.au3#L72
+        var server = _settings.Server;
 
-        // TODO this is fugly.
-        //var conanServer = _settings.Servers.FirstOrDefault(s =>
-        //    hostname.Equals(s.Hostname, StringComparison.CurrentCultureIgnoreCase)
-        //    && queryPort == s.QueryPort);
-        var conanServer = _settings.Servers;
+        if (_semaphore.CurrentCount == 0) return RestartResponse.RestartInProgress;
 
-        if (conanServer is null) return false;
-
-        if (_semaphore.CurrentCount == 0) return false;
         RconClient? rcon = null;
 
         try
         {
             await _semaphore.WaitAsync();
 
-            rcon = RconClient.Create(conanServer.QueryHostname, conanServer.RconPort);
+            if (!await _commandThrottler.TryCanRunCommandAsync())
+            {
+                return RestartResponse.Throttled;
+            }
 
-            var response = await _pingService.PingAsync(conanServer.QueryHostname, conanServer.QueryPort);
-            if (response is null || response.Players.Count > 0) return false;
+            var response = await _pingService.PingAsync(server.QueryHostname, server.QueryPort);
+            if (response is null || response.Players.Count > 0) return RestartResponse.ServerNotEmpty;
 
             var processes = Process.GetProcessesByName("ConanSandboxServer");
-            if (!processes.Any()) return false;
+            if (!processes.Any()) return RestartResponse.CouldntFindServerProcess;
 
             var process = processes.First();
 
-            // process.MainWindowHandle // TODO send ^X ^X ^C?
-            var executablePath = process.MainModule?.FileName;
-            if (executablePath is null) return false;
+            //var executablePath = process.MainModule?.FileName;
+            //if (executablePath is null) return false;
+            //
+            //var serverBaseDirectory = Path.GetDirectoryName(executablePath) ?? server.ServerBaseDirectory;
+            //
+            //var serverFullCommandLine = process.GetCommandLine();
+            //
+            //if (string.IsNullOrEmpty(serverFullCommandLine)) return false;
+            //
+            //var commandLine = (serverFullCommandLine.StartsWith("\"")
+            //    ? serverFullCommandLine[(serverFullCommandLine.IndexOf("\"", 2) + 1)..]
+            //    : serverFullCommandLine[serverFullCommandLine.IndexOf(" ", 1)..])
+            //    .Trim();
 
-            var serverBaseDirectory = Path.GetDirectoryName(executablePath) ?? conanServer.ServerBaseDirectory;
-
-            var serverFullCommandLine = process.GetCommandLine();
-
-            if (string.IsNullOrEmpty(serverFullCommandLine)) return false;
-
-            var commandLine = (serverFullCommandLine.StartsWith("\"")
-                ? serverFullCommandLine.Substring(serverFullCommandLine.IndexOf("\"", 2) + 1)
-                : serverFullCommandLine.Substring(serverFullCommandLine.IndexOf(" ", 1)))
-                .Trim();
-
+            rcon = RconClient.Create(server.QueryHostname, server.RconPort);
             await rcon.ConnectAsync();
 
-            var authenticated = await rcon.AuthenticateAsync(conanServer.RconPassword);
-            if (!authenticated) return false;
+            if (!await rcon.AuthenticateAsync(server.RconPassword)) return RestartResponse.InvalidRconPassword;
 
             var shutdownCommand = await rcon.ExecuteCommandAsync("shutdown");
 
             await process.WaitForExitAsync(CancellationToken.None);
 
+            // If Dedicated Server Manager is running, it'll auto-restart the server when it crashes (assuming the box is checked).
+            // Just rely on that for now.
+
+            /*
             var serverIniPath = Path.Combine(serverBaseDirectory,
                 @"ConanExilesDedicatedServer", @"ConanSandbox", @"Saved", @"Config", @"WindowsServer", @"ServerSettings.ini");
 
@@ -140,13 +140,14 @@ public class RestartService : IRestartService
 
             var serverProcess = Process.Start(serverProcessStartInfo);
             // We don't need to wait for this process.
+            */
 
-            return true;
+            return RestartResponse.Success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error attempting to restart Conan Exiles server at IP {ip}:{port}.", conanServer.Hostname, conanServer.ServerPort);
-            return false;
+            _logger.LogError(ex, "Error attempting to restart Conan Exiles server at IP {ip}:{port}.", server.Hostname, server.ServerPort);
+            return RestartResponse.Exception;
         }
         finally
         {

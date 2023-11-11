@@ -4,5 +4,16 @@ namespace ConanExilesHelper.Games.ConanExiles;
 
 public interface IRestartService
 {
-    Task<bool> TryRestartAsync();
+    Task<RestartResponse> RestartAsync();
+}
+
+public enum RestartResponse
+{
+    Success,
+    Exception,
+    RestartInProgress,
+    ServerNotEmpty,
+    CouldntFindServerProcess,
+    Throttled,
+    InvalidRconPassword
 }

@@ -4,7 +4,7 @@ $Runtime = 'win-x64'
 $Framework = 'net7.0'
 $Configuration = 'Release'
 $ServiceName = "ConanExilesHelper"
-$ServiceDescription = "FλT Family Helper bot service"
+$ServiceDescription = "Conan Exiles Helper bot service"
 
 $DeployDir = "dist"
 $ExeName = "ConanExilesHelper.exe"

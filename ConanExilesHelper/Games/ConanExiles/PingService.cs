@@ -11,7 +11,7 @@ namespace ConanExilesHelper.Games.ConanExiles;
 // Adapted from https://gist.github.com/csh/2480d14fbbb33b4bbae3
 public class PingService : IPingService
 {
-    private static readonly object _lock = new();
+    private static readonly SemaphoreSlim _semaphore = new(1);
 
     private readonly ILogger<PingService> _logger;
     private readonly ICommandThrottler _commandThrottler;
@@ -24,17 +24,23 @@ public class PingService : IPingService
 
     public async Task<GameServer<ConanExilesRules>?> PingAsync(string hostname, ushort queryPort)
     {
-        lock (_lock)
+        await _semaphore.WaitAsync();
+
+        try
         {
-            if (!_commandThrottler.TryCanRunCommand()) return null;
+            if (!await _commandThrottler.TryCanRunCommandAsync()) return null;
+
+            var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);
+
+            var endpoint = new IPEndPoint(IPAddress.Parse(hostname), queryPort);
+
+            await gs.QueryAsync(endpoint, CancellationToken.None);
+
+            return gs;
         }
-
-        var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);
-
-        var endpoint = new IPEndPoint(IPAddress.Parse(hostname), queryPort);
-
-        await gs.QueryAsync(endpoint, CancellationToken.None);
-
-        return gs;
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 }
