@@ -1,4 +1,3 @@
-using CoreRCON;
 using Discord;
 using Discord.Commands;
 using Discord.Interactions;
@@ -8,7 +7,6 @@ using ConanExilesHelper.Games.ConanExiles;
 using ConanExilesHelper.Helpers;
 using ConanExilesHelper.Models.Configuration;
 using ConanExilesHelper.Services;
-using ConanExilesHelper.Wrappers.Rcon;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,8 +16,6 @@ using NLog.Extensions.Logging;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -155,26 +151,5 @@ public class Program
         });
 
         serviceCollection.AddSingleton<CommandAndEventHandler>();
-
-        var serverInfo = config.GetSection("conanExilesSettings")?.Get<ConanExilesSettings>()?.Servers?.FirstOrDefault();
-
-        if (serverInfo is not null)
-        {
-            IPAddress? serverIp;
-            if (!IPAddress.TryParse(serverInfo.Hostname, out serverIp))
-            {
-                var addresslist = Dns.GetHostAddresses(serverInfo.Hostname);
-                if (addresslist.Any())
-                {
-                    serverIp = addresslist.First();
-                }
-            }
-
-            if (serverIp is not null)
-            {
-                serviceCollection.AddTransient(sp => new RCON(new IPEndPoint(serverIp, serverInfo.RconPort), serverInfo.RconPassword));
-                serviceCollection.AddTransient<IRCONWrapperFactory, RCONWrapperFactory>();
-            }
-        }
     }
 }

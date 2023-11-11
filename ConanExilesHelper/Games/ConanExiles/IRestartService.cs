@@ -4,5 +4,5 @@ namespace ConanExilesHelper.Games.ConanExiles;
 
 public interface IRestartService
 {
-    Task<bool> TryRestartAsync(string hostname, ushort queryPort);
+    Task<bool> TryRestartAsync();
 }

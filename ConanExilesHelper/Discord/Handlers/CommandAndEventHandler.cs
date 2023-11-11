@@ -2,10 +2,8 @@
 using Discord.Interactions;
 using Discord.WebSocket;
 using ConanExilesHelper.Discord.Modules;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace ConanExilesHelper.Discord.Handlers;

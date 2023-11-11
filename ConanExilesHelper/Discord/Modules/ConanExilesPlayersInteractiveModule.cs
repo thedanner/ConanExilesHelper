@@ -51,8 +51,9 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
             }
 
             var defaultServerName = _conanExilesSettings.DefaultServerName ?? "";
-            var server = _conanExilesSettings.Servers.FirstOrDefault(s => s.Name == defaultServerName)
-                ?? _conanExilesSettings.Servers.FirstOrDefault();
+            //var server = _conanExilesSettings.Servers.FirstOrDefault(s => s.Name == defaultServerName)
+            //    ?? _conanExilesSettings.Servers.FirstOrDefault();
+            var server = _conanExilesSettings.Servers;
 
             if (server is null) return;
 

@@ -1,15 +1,10 @@
-﻿using CoreRCON;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using ConanExilesHelper.Discord.Handlers;
-using ConanExilesHelper.Models.Configuration;
 using ConanExilesHelper.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;

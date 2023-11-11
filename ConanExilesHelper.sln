@@ -14,8 +14,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		SourceMod\sm_printinfo.sp = SourceMod\sm_printinfo.sp
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreRCON", "CoreRcon\src\CoreRCON\CoreRCON.csproj", "{671A27CE-70C2-4D59-B8AE-1B104CA6235B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,18 +32,6 @@ Global
 		{CEDA5D44-5BAC-4FB4-8889-51E5CAE484EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CEDA5D44-5BAC-4FB4-8889-51E5CAE484EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CEDA5D44-5BAC-4FB4-8889-51E5CAE484EA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6BD2BFDE-3A0E-4255-B132-587512DF8883}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6BD2BFDE-3A0E-4255-B132-587512DF8883}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6BD2BFDE-3A0E-4255-B132-587512DF8883}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6BD2BFDE-3A0E-4255-B132-587512DF8883}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5C10793B-E554-415B-9A31-1D93F3D8B7F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C10793B-E554-415B-9A31-1D93F3D8B7F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C10793B-E554-415B-9A31-1D93F3D8B7F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C10793B-E554-415B-9A31-1D93F3D8B7F7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{671A27CE-70C2-4D59-B8AE-1B104CA6235B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{671A27CE-70C2-4D59-B8AE-1B104CA6235B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{671A27CE-70C2-4D59-B8AE-1B104CA6235B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{671A27CE-70C2-4D59-B8AE-1B104CA6235B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

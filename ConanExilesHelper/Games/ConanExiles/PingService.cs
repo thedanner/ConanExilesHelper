@@ -14,19 +14,19 @@ public class PingService : IPingService
     private static readonly object _lock = new();
 
     private readonly ILogger<PingService> _logger;
-    private readonly ICommandThrottler _pingThrottler;
+    private readonly ICommandThrottler _commandThrottler;
 
-    public PingService(ILogger<PingService> logger, ICommandThrottler pingThrottler)
+    public PingService(ILogger<PingService> logger, ICommandThrottler commandThrottler)
     {
         _logger = logger;
-        _pingThrottler = pingThrottler;
+        _commandThrottler = commandThrottler;
     }
 
     public async Task<GameServer<ConanExilesRules>?> PingAsync(string hostname, ushort queryPort)
     {
         lock (_lock)
         {
-            if (!_pingThrottler.TryCanRunCommand()) return null;
+            if (!_commandThrottler.TryCanRunCommand()) return null;
         }
 
         var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);
