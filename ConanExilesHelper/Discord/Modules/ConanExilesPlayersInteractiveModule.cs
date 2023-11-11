@@ -9,6 +9,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Discord.WebSocket;
 
 namespace ConanExilesHelper.Discord.Modules;
 
@@ -48,7 +49,12 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
             if (_settings.ChannelIdFilter?.Any() == true)
             {
                 var channelFilter = _settings.ChannelIdFilter!;
-                if (!channelFilter.Contains(Context.Channel.Id)) return;
+                if (!channelFilter.Contains(Context.Channel.Id))
+                {
+                    // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
+                    await FollowupAsync($"This command can only be run from the right channel.");
+                    return;
+                }
             }
 
             var server = _settings.Server;
@@ -120,7 +126,23 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
             if (_settings.ChannelIdFilter?.Any() == true)
             {
                 var channelFilter = _settings.ChannelIdFilter!;
-                if (!channelFilter.Contains(Context.Channel.Id)) return;
+                if (!channelFilter.Contains(Context.Channel.Id))
+                {
+                    // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
+                    await FollowupAsync($"This can only be run from the right channel.");
+                    return;
+                }
+            }
+
+            if (_settings.RequireRoleIdsForRestart?.Any() == true)
+            {
+                var userRoles = ((SocketGuildUser) Context.User).Roles.Select(r => r.Id);
+                var anyInCommon = userRoles.Intersect(_settings.RequireRoleIdsForRestart!).Any();
+                if (!anyInCommon)
+                {
+                    await FollowupAsync($"This can only be run by users with the appropriate role.");
+                    return;
+                }
             }
 
             var server = _settings.Server;
