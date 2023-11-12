@@ -48,11 +48,7 @@ public class ConanExilesTests
         // Arrange
         var options = _host.Services.GetRequiredService<IOptions<ConanExilesSettings>>();
 
-        var pingService = new PingService(new NullLogger<PingService>(), new CommandThrottler());
-        var restartService = new RestartService(
-            new NullLogger<RestartService>(),
-            options,
-            pingService);
+        var restartService = new RestartService(new NullLogger<RestartService>(), options);
 
         // Act
         var response = await restartService.RestartAsync();

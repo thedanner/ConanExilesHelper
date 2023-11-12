@@ -159,7 +159,8 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
                 case RestartResponse.RestartInProgress: message = "A restart request is already in progress, please wait a couple of minutes."; break;
                 case RestartResponse.ServerNotEmpty: message = "The server isn't empty."; break;
                 case RestartResponse.CouldntFindServerProcess: message = "I'm having trouble checking if the server is running or not."; break;
-                case RestartResponse.Throttled: message = "A restart happened not too long ago, please wait a couple of minutes."; break;
+                case RestartResponse.RestartThrottled: message = "A restart happened not too long ago, please wait a couple of minutes."; break;
+                case RestartResponse.PingThrottled: message = "An attempt to restart just happened recently, please wait a couple of seconds."; break;
                 case RestartResponse.InvalidRconPassword: message = "I have an incorrect RCON password configured."; break;
                 default: message = $"I don't have a message for whatever happened, sorry ({response})."; break;
             }

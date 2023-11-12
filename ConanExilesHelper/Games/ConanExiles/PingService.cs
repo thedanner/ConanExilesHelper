@@ -28,7 +28,7 @@ public class PingService : IPingService
 
         try
         {
-            if (!await _commandThrottler.TryCanRunCommandAsync()) return null;
+            if (!await _commandThrottler.TryStartTimeoutAsync()) return null;
 
             var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);
 

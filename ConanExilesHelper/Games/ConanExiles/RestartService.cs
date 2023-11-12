@@ -8,29 +8,27 @@ using System.Linq;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Net;
-using System.Net.Sockets;
 using RconSharp;
+using ConanExilesHelper.SourceQuery.Rules;
+using ConanExilesHelper.SourceQuery;
+using System.Net;
 
 namespace ConanExilesHelper.Games.ConanExiles;
 
 public class RestartService : IRestartService
 {
     private static readonly SemaphoreSlim _semaphore = new(1);
-    private static readonly ICommandThrottler _commandThrottler = new CommandThrottler(TimeSpan.FromMinutes(5));
+    private static readonly ICommandThrottler _pingThrottler = new CommandThrottler(TimeSpan.FromSeconds(10));
+    private static readonly ICommandThrottler _restartThrottler = new CommandThrottler(TimeSpan.FromMinutes(5));
 
     private readonly ILogger<RestartService> _logger;
     private readonly ConanExilesSettings _settings;
-    private readonly IPingService _pingService;
 
 
-    public RestartService(ILogger<RestartService> logger,
-        IOptions<ConanExilesSettings>? settings,
-        IPingService pingService)
+    public RestartService(ILogger<RestartService> logger, IOptions<ConanExilesSettings>? settings)
     {
         _logger = logger;
         _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
-        _pingService = pingService;
     }
 
     [SupportedOSPlatform("windows")]
@@ -46,13 +44,20 @@ public class RestartService : IRestartService
         {
             await _semaphore.WaitAsync();
 
-            if (!await _commandThrottler.TryCanRunCommandAsync())
-            {
-                return RestartResponse.Throttled;
-            }
+            // The throttler checks should all be inside the area protected by _semaphore to prevent other race conditions.
 
-            var response = await _pingService.PingAsync(server.QueryHostname, server.QueryPort);
-            if (response is null || response.Players.Count > 0) return RestartResponse.ServerNotEmpty;
+            if (!await _pingThrottler.CanRunCommandAsync()) return RestartResponse.PingThrottled;
+            if (!await _restartThrottler.CanRunCommandAsync()) return RestartResponse.RestartThrottled;
+
+            var gs = new GameServer<ConanExilesRules>(ConanExilesRules.Parser);
+
+            var endpoint = new IPEndPoint(IPAddress.Parse(server.QueryHostname), server.QueryPort);
+
+            await gs.QueryAsync(endpoint, CancellationToken.None);
+
+            await _pingThrottler.StartTimeoutAsync();
+
+            if (gs.Players.Count > 0) return RestartResponse.ServerNotEmpty;
 
             var processes = Process.GetProcessesByName("ConanSandboxServer");
             if (!processes.Any()) return RestartResponse.CouldntFindServerProcess;
@@ -79,6 +84,8 @@ public class RestartService : IRestartService
             if (!await rcon.AuthenticateAsync(server.RconPassword)) return RestartResponse.InvalidRconPassword;
 
             var shutdownCommand = await rcon.ExecuteCommandAsync("shutdown");
+
+            await _restartThrottler.StartTimeoutAsync();
 
             await process.WaitForExitAsync(CancellationToken.None);
 

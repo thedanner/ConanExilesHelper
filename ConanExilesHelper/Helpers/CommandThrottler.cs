@@ -24,16 +24,39 @@ public class CommandThrottler : ICommandThrottler
         _minimumWait = minimumWait;
     }
 
-    public async Task<bool> TryCanRunCommandAsync()
+    public async Task<bool> CanRunCommandAsync()
     {
-        await _semaphore.WaitAsync();
+        return await HandleRequest(false);
+    }
 
+    public async Task StartTimeoutAsync()
+    {
         try
         {
+            await _semaphore.WaitAsync();
+            _lastCommand = DateTimeOffset.Now;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<bool> TryStartTimeoutAsync()
+    {
+        return await HandleRequest(true);
+    }
+
+    private async Task<bool> HandleRequest(bool update)
+    {
+        try
+        {
+            await _semaphore.WaitAsync();
+
             var now = DateTimeOffset.Now;
             if (_lastCommand + _minimumWait < now)
             {
-                _lastCommand = now;
+                if (update) _lastCommand = now;
                 return true;
             }
             return false;

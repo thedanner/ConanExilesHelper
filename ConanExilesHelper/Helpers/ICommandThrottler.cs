@@ -4,5 +4,7 @@ namespace ConanExilesHelper.Helpers;
 
 public interface ICommandThrottler
 {
-    Task<bool> TryCanRunCommandAsync();
+    Task<bool> CanRunCommandAsync();
+    Task StartTimeoutAsync();
+    Task<bool> TryStartTimeoutAsync();
 }

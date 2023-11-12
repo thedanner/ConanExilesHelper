@@ -14,6 +14,7 @@ public enum RestartResponse
     RestartInProgress,
     ServerNotEmpty,
     CouldntFindServerProcess,
-    Throttled,
+    RestartThrottled,
+    PingThrottled,
     InvalidRconPassword
 }
