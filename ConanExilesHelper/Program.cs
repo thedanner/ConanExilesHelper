@@ -5,7 +5,6 @@ using Discord.WebSocket;
 using ConanExilesHelper.Discord.Handlers;
 using ConanExilesHelper.Games.ConanExiles;
 using ConanExilesHelper.Helpers;
-using ConanExilesHelper.Models.Configuration;
 using ConanExilesHelper.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +18,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using ConanExilesHelper.Configuration;
 
 namespace ConanExilesHelper;
 

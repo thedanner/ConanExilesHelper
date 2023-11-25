@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ConanExilesHelper.Models.Configuration;
+namespace ConanExilesHelper.Configuration;
 
 public class ConanExilesSettings
 {

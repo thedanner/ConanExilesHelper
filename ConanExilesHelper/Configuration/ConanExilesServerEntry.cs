@@ -1,4 +1,4 @@
-﻿namespace ConanExilesHelper.Models.Configuration;
+﻿namespace ConanExilesHelper.Configuration;
 
 public class ConanExilesServerEntry
 {

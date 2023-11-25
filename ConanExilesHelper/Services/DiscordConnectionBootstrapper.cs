@@ -2,12 +2,12 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using ConanExilesHelper.Helpers.Extensions;
-using ConanExilesHelper.Models.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using ConanExilesHelper.Configuration;
 
 namespace ConanExilesHelper.Services;
 

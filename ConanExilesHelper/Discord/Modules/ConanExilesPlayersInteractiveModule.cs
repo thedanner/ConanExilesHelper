@@ -2,7 +2,6 @@
 using Discord.Interactions;
 using ConanExilesHelper.Helpers;
 using ConanExilesHelper.Games.ConanExiles;
-using ConanExilesHelper.Models.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -10,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Discord.WebSocket;
+using ConanExilesHelper.Configuration;
 
 namespace ConanExilesHelper.Discord.Modules;
 

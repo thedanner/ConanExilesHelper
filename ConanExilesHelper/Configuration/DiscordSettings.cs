@@ -1,4 +1,4 @@
-﻿namespace ConanExilesHelper.Models.Configuration;
+﻿namespace ConanExilesHelper.Configuration;
 
 public class DiscordSettings
 {
@@ -9,5 +9,5 @@ public class DiscordSettings
     }
 
     public string BotToken { get; set; }
-    public ConanExilesSettings ConanExilesSettings{ get; set; }
+    public ConanExilesSettings ConanExilesSettings { get; set; }
 }
