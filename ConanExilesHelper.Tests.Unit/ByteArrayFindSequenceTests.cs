@@ -311,7 +311,6 @@ public class VtfSprayTests
     [Test]
     public void FindSequence_ActualExample_ReturnsCorrectResult()
     {
-
         // Arrange
         byte[] source = new byte[] {
             254, 255, 255, 255, 222,  16,   0,   0,

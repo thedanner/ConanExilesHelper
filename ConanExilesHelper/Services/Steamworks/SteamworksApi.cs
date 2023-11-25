@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
@@ -9,14 +11,16 @@ namespace ConanExilesHelper.Services.Steamworks;
 public class SteamworksApi : ISteamworksApi
 {
     private readonly HttpClient _http;
+    private readonly ILogger<SteamworksApi> _logger;
 
-    public SteamworksApi(HttpClient http)
+    public SteamworksApi(HttpClient http, ILogger<SteamworksApi> logger)
     {
-        _http = http;
+        _http = http ?? throw new ArgumentNullException(nameof(http));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<PublishedFileDetailsResponse?> GetPublishedFileDetails(
-        IList<long> publishedFileIds, CancellationToken cancellationToken)
+    public async Task<SteamworksResponse<PublishedFileDetailsWrapper?>?> GetPublishedFileDetails(
+        List<long> publishedFileIds, CancellationToken cancellationToken)
     {
         var formValues = new Dictionary<string, string>(publishedFileIds.Count + 1)
         {
@@ -38,8 +42,8 @@ public class SteamworksApi : ISteamworksApi
 
         var responseStr = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        var publisedFileDetails = JsonSerializer.Deserialize<PublishedFileDetailsResponse>(responseStr);
+        var publishedFileDetails = JsonSerializer.Deserialize<SteamworksResponse<PublishedFileDetailsWrapper?>>(responseStr);
 
-        return publisedFileDetails;
+        return publishedFileDetails;
     }
 }

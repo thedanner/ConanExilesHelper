@@ -4,7 +4,13 @@ using System.Text.Json.Serialization;
 
 namespace ConanExilesHelper.Services.Steamworks;
 
-public class PublishedFileDetailsResponse
+public class SteamworksResponse<T>
+{
+    [JsonPropertyName("response")]
+    public T? Response { get; set; } = default;
+}
+
+public class PublishedFileDetailsWrapper
 {
     [JsonPropertyName("result")]
     public int Result { get; set; }
@@ -12,11 +18,11 @@ public class PublishedFileDetailsResponse
     [JsonPropertyName("resultcount")]
     public int ResultCount { get; set; }
 
-    [JsonPropertyName("publisedfiledetails")]
-    public List<PublisedFileDetails> PublisedFileDetails { get; set; } = new List<PublisedFileDetails>();
+    [JsonPropertyName("publishedfiledetails")]
+    public List<PublishedFileDetails> PublishedFileDetails { get; set; } = new List<PublishedFileDetails>();
 }
 
-public class PublisedFileDetails
+public class PublishedFileDetails
 {
     [JsonPropertyName("publishedfileid")]
     public string PublishedFileIdStr { get; set; } = "";
@@ -54,7 +60,7 @@ public class PublisedFileDetails
     public string FileUrl { get; set; } = "";
 
     [JsonPropertyName("hcontent_file")]
-    public string HContentFileIdStr { get; set; }
+    public string HContentFileIdStr { get; set; } = "";
 
     public long HContentFileId =>
         long.TryParse(HContentFileIdStr, out var hContentFileId)

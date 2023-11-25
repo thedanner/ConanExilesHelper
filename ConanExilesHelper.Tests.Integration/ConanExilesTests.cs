@@ -1,18 +1,17 @@
 ﻿using FluentAssertions;
-using ConanExilesHelper.Models.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
 using System.IO;
 using System.Threading.Tasks;
-using ConanExilesHelper.Helpers;
 using ConanExilesHelper.Games.ConanExiles;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Runtime.Versioning;
+using ConanExilesHelper.Configuration;
 
-namespace ConanExilesHelper.Tests.Integration.ConanExiles;
+namespace ConanExilesHelper.Tests.Integration;
 
 [TestFixture]
 [Explicit("Run manually")]
