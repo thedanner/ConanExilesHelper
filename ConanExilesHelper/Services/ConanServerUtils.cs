@@ -52,7 +52,7 @@ public class ConanServerUtils : IConanServerUtils
         var serverBaseDirectory = GetServerBaseDirectoryPath();
 
         var serverIniPath = Path.Combine(serverBaseDirectory,
-                @"ConanExilesDedicatedServer", @"ConanSandbox", @"Saved", @"Config", @"WindowsServer", @"ServerSettings.ini");
+                @"ConanSandbox", @"Saved", @"Config", @"WindowsServer", @"ServerSettings.ini");
 
         var parser = new FileIniDataParser();
         var data = parser.ReadFile(serverIniPath);
@@ -71,12 +71,12 @@ public class ConanServerUtils : IConanServerUtils
         var serverBaseDirectory = GetServerBaseDirectoryPath();
 
         var acfPath = Path.Combine(serverBaseDirectory,
-            @"ConanExilesDedicatedServer", @"steamapps", @"workshop", @"appworkshop_440900.acf");
+            @"steamapps", @"workshop", @"appworkshop_440900.acf");
 
         var reader = new AcfReader(acfPath);
         var acfStruct = reader.ACFFileToStruct();
 
-        var modsData = acfStruct.SubACF["WorkshopItemsInstalled"];
+        var modsData = acfStruct.SubACF["AppWorkshop"].SubACF["WorkshopItemsInstalled"];
 
         var dict = new Dictionary<long, DateTimeOffset>();
 
@@ -90,5 +90,11 @@ public class ConanServerUtils : IConanServerUtils
         }
 
         return dict;
+    }
+
+    public bool IsSteamCmdRunning()
+    {
+        var processes = Process.GetProcessesByName("steamcmd");
+        return processes.Any();
     }
 }

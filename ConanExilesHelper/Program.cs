@@ -115,6 +115,7 @@ public class Program
 
         serviceCollection.Configure<DiscordSettings>(config.GetSection("discordSettings"));
         serviceCollection.Configure<ConanExilesSettings>(config.GetSection("conanExilesSettings"));
+        serviceCollection.Configure<List<TaskDefinition>>(config.GetSection("taskDefinitions"));
 
         serviceCollection.AddSingleton(new HttpClient());
 

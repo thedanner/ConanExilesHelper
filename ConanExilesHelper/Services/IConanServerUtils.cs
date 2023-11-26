@@ -10,4 +10,5 @@ public interface IConanServerUtils
     string GetServerBaseDirectoryPath();
     IEnumerable<long> GetWorkshopAddonIds();
     Dictionary<long, DateTimeOffset> GetWorkshopModsLastUpdated();
+    bool IsSteamCmdRunning();
 }

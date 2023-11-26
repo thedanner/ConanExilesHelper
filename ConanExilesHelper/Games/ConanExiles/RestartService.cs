@@ -7,8 +7,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RconSharp;
 using System;
-using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Runtime.Versioning;
 using System.Threading;
@@ -23,12 +21,14 @@ public class RestartService : IRestartService
     private static readonly ICommandThrottler _restartThrottler = new CommandThrottler(TimeSpan.FromMinutes(5));
 
     private readonly ILogger<RestartService> _logger;
+    private readonly IConanServerUtils _serverUtils;
     private readonly ConanExilesSettings _settings;
 
 
-    public RestartService(ILogger<RestartService> logger, IOptions<ConanExilesSettings>? settings)
+    public RestartService(ILogger<RestartService> logger, IConanServerUtils serverUtils, IOptions<ConanExilesSettings>? settings)
     {
         _logger = logger;
+        _serverUtils = serverUtils;
         _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
     }
 
@@ -60,7 +60,7 @@ public class RestartService : IRestartService
 
             if (gs.Players.Count > 0) return RestartResponse.ServerNotEmpty;
 
-            var process = ConanServerUtils.GetConanServerProcess();
+            var process = _serverUtils.GetConanServerProcess();
             if (process is null) return RestartResponse.CouldntFindServerProcess;
 
             //var executablePath = process.MainModule?.FileName;

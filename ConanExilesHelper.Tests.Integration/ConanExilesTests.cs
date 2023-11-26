@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System.Runtime.Versioning;
 using ConanExilesHelper.Configuration;
+using ConanExilesHelper.Services;
 
 namespace ConanExilesHelper.Tests.Integration;
 
@@ -33,6 +34,8 @@ public class ConanExilesTests
             })
             .ConfigureServices((hostContext, serviceCollection) =>
             {
+                serviceCollection.AddTransient<IConanServerUtils, ConanServerUtils>();
+
                 var config = hostContext.Configuration!;
                 serviceCollection.Configure<ConanExilesSettings>(config.GetSection("conanExilesSettings"));
             });
@@ -46,8 +49,9 @@ public class ConanExilesTests
     {
         // Arrange
         var options = _host.Services.GetRequiredService<IOptions<ConanExilesSettings>>();
+        var serverUtils = _host.Services.GetRequiredService<IConanServerUtils>();
 
-        var restartService = new RestartService(new NullLogger<RestartService>(), options);
+        var restartService = new RestartService(new NullLogger<RestartService>(), serverUtils, options);
 
         // Act
         var response = await restartService.RestartAsync();
