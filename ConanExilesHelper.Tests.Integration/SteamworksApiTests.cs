@@ -22,7 +22,7 @@ public class SteamworksApiTests
             .Split(",").Select(long.Parse).ToList();
 
         // Act
-        var response = await api.GetPublishedFileDetails(ids, CancellationToken.None);
+        var response = await api.GetPublishedFileDetailsAsync(ids, CancellationToken.None);
 
         // Assert
         response.Should().NotBeNull();

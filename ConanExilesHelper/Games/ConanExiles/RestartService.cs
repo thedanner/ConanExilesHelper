@@ -1,5 +1,6 @@
 ﻿using ConanExilesHelper.Configuration;
 using ConanExilesHelper.Helpers;
+using ConanExilesHelper.Services;
 using ConanExilesHelper.SourceQuery;
 using ConanExilesHelper.SourceQuery.Rules;
 using Microsoft.Extensions.Logging;
@@ -59,10 +60,8 @@ public class RestartService : IRestartService
 
             if (gs.Players.Count > 0) return RestartResponse.ServerNotEmpty;
 
-            var processes = Process.GetProcessesByName("ConanSandboxServer");
-            if (!processes.Any()) return RestartResponse.CouldntFindServerProcess;
-
-            var process = processes.First();
+            var process = ConanServerUtils.GetConanServerProcess();
+            if (process is null) return RestartResponse.CouldntFindServerProcess;
 
             //var executablePath = process.MainModule?.FileName;
             //if (executablePath is null) return false;

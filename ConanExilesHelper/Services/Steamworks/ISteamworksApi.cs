@@ -6,5 +6,6 @@ namespace ConanExilesHelper.Services.Steamworks;
 
 public interface ISteamworksApi
 {
-    Task<SteamworksResponse<PublishedFileDetailsWrapper?>?> GetPublishedFileDetails(List<long> publishedFileIds, CancellationToken cancellationToken);
+    Task<SteamworksResponse<PublishedFileDetailsWrapper?>?> GetPublishedFileDetailsAsync(
+        List<long> publishedFileIds, CancellationToken cancellationToken);
 }

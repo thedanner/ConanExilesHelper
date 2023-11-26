@@ -19,7 +19,7 @@ public class SteamworksApi : ISteamworksApi
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<SteamworksResponse<PublishedFileDetailsWrapper?>?> GetPublishedFileDetails(
+    public async Task<SteamworksResponse<PublishedFileDetailsWrapper?>?> GetPublishedFileDetailsAsync(
         List<long> publishedFileIds, CancellationToken cancellationToken)
     {
         var formValues = new Dictionary<string, string>(publishedFileIds.Count + 1)

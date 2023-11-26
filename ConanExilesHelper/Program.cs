@@ -19,6 +19,12 @@ using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using ConanExilesHelper.Configuration;
+using Microsoft.Extensions.Options;
+using Quartz;
+using System.Collections.Generic;
+using System.Linq;
+using ConanExilesHelper.Scheduling.Infrastructure;
+using ConanExilesHelper.Services.Steamworks;
 
 namespace ConanExilesHelper;
 
@@ -151,5 +157,128 @@ public class Program
         });
 
         serviceCollection.AddSingleton<CommandAndEventHandler>();
+
+        serviceCollection.AddTransient<ISteamworksApi, SteamworksApi>();
+        serviceCollection.AddTransient<IConanServerUtils, ConanServerUtils>();
+
+        // More specific handlers
+        var allLoadedTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(x => x.GetTypes())
+            .ToList()
+            .AsReadOnly();
+
+        BindTasks(allLoadedTypes, serviceCollection);
+
+        ConfigureScheduler(serviceCollection, config);
+    }
+
+    private static void BindTasks(IReadOnlyList<Type> allLoadedTypes, IServiceCollection serviceCollection)
+    {
+        var handlerTypes = new List<Type>();
+
+        // Do all the filtering and sorting in one pass over the loaded types list.
+        foreach (var type in allLoadedTypes)
+        {
+            if (typeof(ITask).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            {
+                handlerTypes.Add(type);
+            }
+        }
+
+        var duplicatedNames = handlerTypes
+            .GroupBy(t => t.Name)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicatedNames.Any())
+        {
+            // If this comes up, we may need to create an attribute that allows a custom name to be specified or something.
+            throw new Exception(
+                "Found tasks with duplicate names (note that only the class name and no part of the namespace is " +
+                "used as the task name, and therefore class names must be unique: " +
+                string.Join(", ", duplicatedNames));
+        }
+
+        foreach (var handlerType in handlerTypes)
+        {
+            serviceCollection.AddTransient(handlerType);
+        }
+
+        // Technique borrowed from
+        // https://dejanstojanovic.net/aspnet/2018/december/registering-multiple-implementations-of-the-same-interface-in-aspnet-core/
+        serviceCollection.AddTransient<Func<string, ITask>>(serviceProvider => key =>
+        {
+            var type = handlerTypes.FirstOrDefault(t => t.Name == key);
+            if (type is null)
+            {
+                throw new Exception($"Couldn't find an ITask with class name of '{key}'.");
+            }
+            var task = (ITask)serviceProvider.GetRequiredService(type);
+            return task;
+        });
+    }
+
+    private static void ConfigureScheduler(IServiceCollection serviceCollection, IConfiguration config)
+    {
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+
+        var tasks = serviceProvider.GetRequiredService<IOptions<List<TaskDefinition>>>().Value;
+
+        var tasksGroupedByName = tasks.GroupBy(t => t.Name);
+        var replicatedNames = tasksGroupedByName.Where(g => g.Count() > 1);
+        if (replicatedNames.Any())
+        {
+            throw new Exception("Multiple tasks were found with each of the following names: " +
+                string.Join(", ", replicatedNames.Select(n => $"\"{n.Key}\"")));
+        }
+
+        serviceCollection.AddQuartz(q =>
+        {
+            q.UseDefaultThreadPool(tp =>
+            {
+                tp.MaxConcurrency = 1;
+            });
+
+            foreach (var taskSetting in tasks)
+            {
+                if (string.IsNullOrEmpty(taskSetting.Name))
+                {
+                    throw new Exception($"A task is missing a {nameof(taskSetting.Name)}.");
+                }
+
+                logger.LogInformation("Creating task in scheduler for \"{taskName}\".", taskSetting.Name);
+
+                var jobKey = new JobKey("JobRunner");
+
+                q.AddJob<JobRunner>(jobKey, j => j
+                    .WithDescription("Job runner")
+                );
+
+                if (string.IsNullOrEmpty(taskSetting.ClassName))
+                {
+                    throw new Exception($"The task definition for the task \"{0}\" is missing {nameof(taskSetting.ClassName)}.");
+                }
+
+                var jobData = new JobDataMap();
+                jobData.Put(JobRunner.KeyTaskName, taskSetting.Name);
+                jobData.Put(JobRunner.KeyClassName, taskSetting.ClassName);
+
+                q.AddTrigger(t => t
+                    .WithIdentity(taskSetting.Name)
+                    .WithCronSchedule(taskSetting.CronSchedule)
+                    .ForJob(jobKey)
+                    .UsingJobData(jobData)
+                );
+            }
+        });
+        serviceCollection.AddTransient<JobRunner>();
+
+        serviceCollection.AddQuartzHostedService(options =>
+        {
+            // when shutting down we want jobs to complete gracefully
+            options.WaitForJobsToComplete = true;
+        });
     }
 }

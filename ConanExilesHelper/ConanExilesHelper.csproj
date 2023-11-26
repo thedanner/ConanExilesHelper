@@ -42,6 +42,10 @@
     <PackageReference Include="NLog" Version="5.2.6" />
     <PackageReference Include="NLog.Extensions.Logging" Version="5.3.5" />
     <PackageReference Include="NLog.Schema" Version="5.2.6" />
+	<PackageReference Include="Quartz" Version="3.8.0" />
+	<PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.8.0" />
+	<PackageReference Include="Quartz.Extensions.Hosting" Version="3.8.0" />
+	<PackageReference Include="Quartz.Serialization.Json" Version="3.8.0" />
     <PackageReference Include="RconSharp" Version="2.0.1" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="System.Management" Version="8.0.0" />
