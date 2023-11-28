@@ -46,15 +46,11 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
 
         try
         {
-            if (_settings.ChannelIdFilter?.Any() == true)
+            if (_settings.ChannelId != Context.Channel.Id)
             {
-                var channelFilter = _settings.ChannelIdFilter!;
-                if (!channelFilter.Contains(Context.Channel.Id))
-                {
-                    // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
-                    await FollowupAsync($"This command can only be run from the right channel.");
-                    return;
-                }
+                // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
+                await FollowupAsync($"This command can only be run from the right channel.");
+                return;
             }
 
             var server = _settings.Server;
@@ -123,15 +119,11 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
 
         try
         {
-            if (_settings.ChannelIdFilter?.Any() == true)
+            if (_settings.ChannelId != Context.Channel.Id)
             {
-                var channelFilter = _settings.ChannelIdFilter!;
-                if (!channelFilter.Contains(Context.Channel.Id))
-                {
-                    // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
-                    await FollowupAsync($"This can only be run from the right channel.");
-                    return;
-                }
+                // The Discord API doesn't support modifying the ephemeral state after the DeferAsync(), so we can't make these private.
+                await FollowupAsync($"This can only be run from the right channel.");
+                return;
             }
 
             if (_settings.RequireRoleIdsForRestart?.Any() == true)
@@ -149,7 +141,7 @@ public class ConanExilesPlayersInteractiveModule : InteractionModuleBase<SocketI
 
             if (server is null) return;
 
-            var response = await _restartService.RestartAsync();
+            var response = await _restartService.TryRestartAsync();
 
             string message;
             switch (response)

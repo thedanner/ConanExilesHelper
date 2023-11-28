@@ -1,12 +1,13 @@
-﻿using ConanExilesHelper.Games.ConanExiles;
+﻿using ConanExilesHelper.Configuration;
+using ConanExilesHelper.Games.ConanExiles;
 using ConanExilesHelper.Scheduling.Infrastructure;
 using ConanExilesHelper.Services;
 using ConanExilesHelper.Services.Steamworks;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,14 +17,17 @@ namespace ConanExilesHelper.Scheduling.Tasks;
 public class CheckWorkshopAddonVersionsTask : ITask
 {
     private readonly ILogger<CheckWorkshopAddonVersionsTask> _logger;
+    private readonly ConanExilesSettings _settings;
     private readonly ISteamworksApi _api;
     private readonly IConanServerUtils _serverUtils;
     private readonly IRestartService _restartService;
 
     public CheckWorkshopAddonVersionsTask(ILogger<CheckWorkshopAddonVersionsTask> logger,
+        IOptions<ConanExilesSettings> settings,
         ISteamworksApi api, IConanServerUtils serverUtils, IRestartService restartService)
     {
         _logger = logger;
+        _settings = settings.Value ?? throw new ArgumentException("Settings argument was not populated.", nameof(settings));
         _api = api;
         _serverUtils = serverUtils;
         _restartService = restartService;
@@ -41,7 +45,7 @@ public class CheckWorkshopAddonVersionsTask : ITask
             {
                 if (i == 0) return;
 
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
             }
         }
 
@@ -51,25 +55,40 @@ public class CheckWorkshopAddonVersionsTask : ITask
 
         if (workshopModsResponse?.Response is null) return;
 
-        var workshopModsLastUpdated = workshopModsResponse.Response.PublishedFileDetails.ToDictionary(d => d.PublishedFileId, d => d.TimeUpdated);
+        var workshopModsDict = workshopModsResponse.Response.PublishedFileDetails.ToDictionary(d => d.PublishedFileId, d => d);
 
-        var areAllTheSame = true;
+        var differentMods = new List<PublishedFileDetails>();
         foreach (var mod in localModsLastUpdated.Keys)
         {
             var localTime = localModsLastUpdated[mod];
-            var workshopTime = workshopModsLastUpdated[mod];
-            var areTheSame = localTime == workshopTime;
-            if (!areAllTheSame)
+            var workshopTime = workshopModsDict[mod].TimeUpdated;
+            if (localTime != workshopTime)
             {
-                areAllTheSame = false;
-                break;
+                differentMods.Add(workshopModsDict[mod]);
             }
         }
 
-        if (areAllTheSame) return;
+        if (!differentMods.Any()) return;
 
         _logger.LogInformation("Some mod updates found; restarting server.");
 
-        await _restartService.RestartAsync();
+        var restartResult = await _restartService.TryRestartAsync();
+
+        var guild = client.GetGuild(_settings.GuildId);
+        if (guild is null) return;
+
+        var channel = guild.GetTextChannel(_settings.ChannelId);
+        if (channel is null) return;
+
+        var mods = string.Join(", ", differentMods.Select(m => m.Title));
+
+        if (restartResult == RestartResponse.Success)
+        {
+            await channel.SendMessageAsync($"Mod updates were found and the server has been restarted.\nUpdates found for {mods}.");
+        }
+        else if (restartResult == RestartResponse.ServerNotEmpty)
+        {
+            await channel.SendMessageAsync($"Mod updates were found, but the server can't be restarted because it's not empty.\nUpdates found for {mods}.");
+        }
     }
 }

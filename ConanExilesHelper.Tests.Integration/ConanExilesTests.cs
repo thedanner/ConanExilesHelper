@@ -54,7 +54,7 @@ public class ConanExilesTests
         var restartService = new RestartService(new NullLogger<RestartService>(), serverUtils, options);
 
         // Act
-        var response = await restartService.RestartAsync();
+        var response = await restartService.TryRestartAsync();
 
         // Assert
         response.Should().Be(RestartResponse.Success);

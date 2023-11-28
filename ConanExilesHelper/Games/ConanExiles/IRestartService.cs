@@ -4,7 +4,7 @@ namespace ConanExilesHelper.Games.ConanExiles;
 
 public interface IRestartService
 {
-    Task<RestartResponse> RestartAsync();
+    Task<RestartResponse> TryRestartAsync();
 }
 
 public enum RestartResponse

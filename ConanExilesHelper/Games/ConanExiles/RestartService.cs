@@ -33,7 +33,7 @@ public class RestartService : IRestartService
     }
 
     [SupportedOSPlatform("windows")]
-    public async Task<RestartResponse> RestartAsync()
+    public async Task<RestartResponse> TryRestartAsync()
     {
         var server = _settings.Server;
 
