@@ -39,14 +39,11 @@ public class CheckWorkshopAddonVersionsTask : ITask
 
         if (!addonIds.Any()) return;
 
-        for (var i = 4; i >= 0; i--)
+        for (var i = 4; i >= 0 && _serverUtils.IsSteamCmdRunning(); i--)
         {
-            if (_serverUtils.IsSteamCmdRunning())
-            {
-                if (i == 0) return;
+            if (i == 0) return;
 
-                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
-            }
+            await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
         }
 
         var modIds = _serverUtils.GetWorkshopAddonIds().ToList();
