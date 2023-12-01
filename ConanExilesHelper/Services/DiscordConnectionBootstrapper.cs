@@ -31,7 +31,7 @@ public class DiscordConnectionBootstrapper : IDiscordConnectionBootstrapper
 
         var readyComplete = new TaskCompletionSource<bool>();
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        client.Connected += async () => _logger.LogInformation("Discord client event: Connected");
+        client.Connected += async () => _logger.LogDebug("Discord client event: Connected");
 
         async Task initalReadyAsync() => await ReadyHandlerWithSignalAsync(readyComplete);
         client.Ready += initalReadyAsync;
@@ -42,7 +42,7 @@ public class DiscordConnectionBootstrapper : IDiscordConnectionBootstrapper
         // This can be changed in DiscoredSocketConfig when the DiscordSocketClient is created.
         // See https://github.com/discord-net/Discord.Net/releases/tag/2.1.0
 
-        client.Disconnected += async (ex) => _logger.LogError(ex, "Discord client event: Disconnected");
+        client.Disconnected += async (ex) => _logger.LogWarning(ex, "Discord client event: Disconnected");
         client.GuildAvailable += async (guild) =>
         {
             _logger.LogInformation("Discord client event: GuildAvailable ({id}: {name})", guild.Id, guild.Name);
@@ -51,9 +51,9 @@ public class DiscordConnectionBootstrapper : IDiscordConnectionBootstrapper
             // Since we're a private bot on only a couple of servers, register to guilds only.
             var registeredCommands = await _interactionService.RegisterCommandsToGuildAsync(guild.Id, true);
 
-            _logger.LogInformation("Registered {count} commands in guild ({id}: {name})", registeredCommands.Count, guild.Id, guild.Name);
+            _logger.LogTrace("Registered {count} commands in guild ({id}: {name})", registeredCommands.Count, guild.Id, guild.Name);
         };
-        client.GuildMembersDownloaded += async (guild) => _logger.LogInformation("Discord client event: GuildMembersDownloaded");
+        client.GuildMembersDownloaded += async (guild) => _logger.LogTrace("Discord client event: GuildMembersDownloaded");
         client.Log += async (logMessage) =>
         {
             var level = logMessage.Severity.ToLogLevel();
@@ -64,8 +64,8 @@ public class DiscordConnectionBootstrapper : IDiscordConnectionBootstrapper
                 "Discord client event: Log: (Source: {source}): {message}",
                 logMessage.Source, logMessage.Message);
         };
-        client.LoggedIn += async () => _logger.LogInformation("Discord client event: LoggedIn");
-        client.LoggedOut += async () => _logger.LogInformation("Discord client event: LoggedOut");
+        client.LoggedIn += async () => _logger.LogTrace("Discord client event: LoggedIn");
+        client.LoggedOut += async () => _logger.LogTrace("Discord client event: LoggedOut");
 
         await client.LoginAsync(TokenType.Bot, _discordSettings.BotToken);
         await client.StartAsync();
