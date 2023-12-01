@@ -95,7 +95,10 @@ public class CheckWorkshopAddonVersionsTask : ITask
         if (restartResult == RestartResponse.Success)
         {
             _logger.LogInformation("  Server restarted.");
-            await channel.SendMessageAsync($"Mod updates were found and the server has been restarted.\nUpdates found for {mods}.");
+            await channel.SendMessageAsync(
+                $"Mod updates were found and the server has been restarted.\n" +
+                $"Updates found for {mods}.\n\n" +
+                $"If you didn't get those updates or can't connect, try restarting Steam.");
         }
         else if (restartResult == RestartResponse.ServerNotEmpty)
         {
