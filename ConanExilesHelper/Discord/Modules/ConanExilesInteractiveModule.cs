@@ -144,15 +144,15 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
 
             var result = await _modVersionChecker.CheckForUpdatesAsync(CancellationToken.None);
 
-            for (var i = 4; i >= 0 && result.Result == VersionCheckResultStatus.RetryLater_SteamCmdRunning; i--)
+            switch (result.Result)
             {
-                _logger.LogDebug("  It looks like steamcmd is running, going to wait a bit.");
-                if (i == 0) return;
-
-                await Task.Delay(TimeSpan.FromMinutes(1), CancellationToken.None);
-
-                result = await _modVersionChecker.CheckForUpdatesAsync(CancellationToken.None);
-            }
+                case VersionCheckResultStatus.RetryLater_SteamCmdRunning:
+                    await FollowupAsync("It looks like the server is starting up. Try again later.");
+                    return;
+                case VersionCheckResultStatus.RetryLater_Throttled:
+                    await FollowupAsync("Updates were checked recently (maybe automatically). Try again later.");
+                    return;
+            };
 
             if (!result.UpdatedMods.Any())
             {
