@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConanExilesHelper.Scheduling.Infrastructure;
 using ConanExilesHelper.Services.Steamworks;
+using ConanExilesHelper.Services.ModComparison;
 
 namespace ConanExilesHelper;
 
@@ -139,7 +140,6 @@ public class Program
                 });
         }
 
-        serviceCollection.AddSingleton<ICommandThrottler, CommandThrottler>();
         serviceCollection.AddTransient<IPingService, PingService>();
         serviceCollection.AddTransient<IRestartService, RestartService>();
 
@@ -161,6 +161,7 @@ public class Program
 
         serviceCollection.AddTransient<ISteamworksApi, SteamworksApi>();
         serviceCollection.AddTransient<IConanServerUtils, ConanServerUtils>();
+        serviceCollection.AddTransient<IModVersionChecker, ModVersionChecker>();
 
         // More specific handlers
         var allLoadedTypes = AppDomain.CurrentDomain.GetAssemblies()

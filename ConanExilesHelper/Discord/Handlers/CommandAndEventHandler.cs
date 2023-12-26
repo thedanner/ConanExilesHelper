@@ -33,7 +33,7 @@ public class CommandAndEventHandler : IDisposable
     {
         _client.ButtonExecuted += HandleButtonExecutedAsync;
 
-        await _interactionService.AddModulesAsync(typeof(ConanExilesPlayersInteractiveModule).Assembly, _serviceProvider);
+        await _interactionService.AddModulesAsync(typeof(ConanExilesInteractiveModule).Assembly, _serviceProvider);
 
         _client.InteractionCreated += HandleInteraction;
     }

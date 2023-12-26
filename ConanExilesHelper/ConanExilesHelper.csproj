@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <!-- Nullable settings described in https://stackoverflow.com/a/55492438 -->
     <Nullable>enable</Nullable>
     <WarningsAsErrors>CS8600;CS8602;CS8603</WarningsAsErrors>
@@ -44,7 +44,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
     <PackageReference Include="NLog" Version="5.2.7" />
-    <PackageReference Include="NLog.Extensions.Logging" Version="5.3.5" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.3.7" />
     <PackageReference Include="NLog.Schema" Version="5.2.7" />
 	<PackageReference Include="Quartz" Version="3.8.0" />
 	<PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.8.0" />

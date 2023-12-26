@@ -1,7 +1,7 @@
 ﻿using ConanExilesHelper.Configuration;
 using ConanExilesHelper.Games.ConanExiles;
 using ConanExilesHelper.Scheduling.Infrastructure;
-using ConanExilesHelper.Services;
+using ConanExilesHelper.Services.ModComparison;
 using ConanExilesHelper.Services.Steamworks;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
@@ -18,18 +18,15 @@ public class CheckWorkshopAddonVersionsTask : ITask
 {
     private readonly ILogger<CheckWorkshopAddonVersionsTask> _logger;
     private readonly ConanExilesSettings _settings;
-    private readonly ISteamworksApi _api;
-    private readonly IConanServerUtils _serverUtils;
+    private readonly IModVersionChecker _modVersionChecker;
     private readonly IRestartService _restartService;
 
     public CheckWorkshopAddonVersionsTask(ILogger<CheckWorkshopAddonVersionsTask> logger,
-        IOptions<ConanExilesSettings> settings,
-        ISteamworksApi api, IConanServerUtils serverUtils, IRestartService restartService)
+        IOptions<ConanExilesSettings> settings, IModVersionChecker modVersionChecker, IRestartService restartService)
     {
         _logger = logger;
         _settings = settings.Value ?? throw new ArgumentException("Settings argument was not populated.", nameof(settings));
-        _api = api;
-        _serverUtils = serverUtils;
+        _modVersionChecker = modVersionChecker;
         _restartService = restartService;
     }
 
@@ -43,54 +40,33 @@ public class CheckWorkshopAddonVersionsTask : ITask
                 "Couldn't get the channel from the settings in the Discord client. " +
                 "Double-check the value and make sure the channel still exists, and check its ID.");
 
-        var addonIds = _serverUtils.GetWorkshopAddonIds().ToList();
+        var result = await _modVersionChecker.CheckForUpdatesAsync(cancellationToken);
 
-        _logger.LogInformation("Starting mod update check, found {count} mod{plural}.", addonIds.Count, addonIds.Count == 1 ? "" : "s");
+        if (result.Result == VersionCheckResultStatus.RetryLater_Throttled) return;
 
-        if (!addonIds.Any()) return;
-
-        for (var i = 4; i >= 0 && _serverUtils.IsSteamCmdRunning(); i--)
+        for (var i = 4; i >= 0 && result.Result == VersionCheckResultStatus.RetryLater_SteamCmdRunning; i--)
         {
             _logger.LogDebug("  It looks like steamcmd is running, going to wait a bit.");
 
             if (i == 0) return;
 
             await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+
+            result = await _modVersionChecker.CheckForUpdatesAsync(cancellationToken);
+
+            if (result.Result == VersionCheckResultStatus.RetryLater_Throttled) return;
         }
 
-        var modIds = _serverUtils.GetWorkshopAddonIds().ToList();
-        var localModsLastUpdated = _serverUtils.GetWorkshopModsLastUpdated();
-        var workshopModsResponse = await _api.GetPublishedFileDetailsAsync(modIds, CancellationToken.None);
-
-        if (workshopModsResponse?.Response is null) return;
-
-        var workshopModsDict = workshopModsResponse.Response.PublishedFileDetails.ToDictionary(d => d.PublishedFileId);
-
-        _logger.LogDebug("  Got a response from Steamworks with {count} mod{plural}.", workshopModsDict.Count, workshopModsDict.Count == 1 ? "" : "s");
-
-        var differentMods = new List<PublishedFileDetails>();
-        foreach (var mod in localModsLastUpdated.Keys)
-        {
-            var localTime = localModsLastUpdated[mod];
-            var workshopTime = workshopModsDict[mod].TimeUpdated;
-            if (localTime != workshopTime)
-            {
-                differentMods.Add(workshopModsDict[mod]);
-            }
-        }
-
-        _logger.LogDebug("  Found {count} mod difference{plural}.", differentMods.Count, differentMods.Count == 1 ? "" : "s");
-
-        if (!differentMods.Any()) return;
+        if (!result.UpdatedMods.Any()) return;
 
         _logger.LogInformation("  Updates found for the following {count} mod{plural}: {list}.",
-            differentMods.Count, differentMods.Count == 1 ? "" : "s",
-            string.Join(", ", differentMods.Select(m => $"{m.Title} ({m.PublishedFileId})")));
+            result.UpdatedMods.Count, result.UpdatedMods.Count == 1 ? "" : "s",
+            string.Join(", ", result.UpdatedMods.Select(m => $"{m.Title} ({m.PublishedFileId})")));
         _logger.LogInformation("  Attempting a server restart.");
 
         var restartResult = await _restartService.TryRestartAsync();
 
-        var mods = string.Join(", ", differentMods.Select(m => m.Title));
+        var mods = string.Join(", ", result.UpdatedMods.Select(m => m.Title));
 
         if (restartResult == RestartResponse.Success)
         {

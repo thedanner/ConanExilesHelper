@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace ConanExilesHelper.Helpers;
 
-public class CommandThrottler : ICommandThrottler
+public class CommandThrottler
 {
     private readonly SemaphoreSlim _semaphore = new(1);
 
@@ -29,11 +29,12 @@ public class CommandThrottler : ICommandThrottler
         return await HandleRequest(false);
     }
 
-    public async Task StartTimeoutAsync()
+    public async Task ForceStartTimeoutAsync()
     {
+        await _semaphore.WaitAsync();
+
         try
         {
-            await _semaphore.WaitAsync();
             _lastCommand = DateTimeOffset.Now;
         }
         finally
@@ -49,10 +50,10 @@ public class CommandThrottler : ICommandThrottler
 
     private async Task<bool> HandleRequest(bool update)
     {
+        await _semaphore.WaitAsync();
+
         try
         {
-            await _semaphore.WaitAsync();
-
             var now = DateTimeOffset.Now;
             if (_lastCommand + _minimumWait < now)
             {

@@ -17,8 +17,8 @@ namespace ConanExilesHelper.Games.ConanExiles;
 public class RestartService : IRestartService
 {
     private static readonly SemaphoreSlim _semaphore = new(1);
-    private static readonly ICommandThrottler _pingThrottler = new CommandThrottler(TimeSpan.FromSeconds(10));
-    private static readonly ICommandThrottler _restartThrottler = new CommandThrottler(TimeSpan.FromMinutes(5));
+    private static readonly CommandThrottler _pingThrottler = new(TimeSpan.FromSeconds(10));
+    private static readonly CommandThrottler _restartThrottler = new(TimeSpan.FromMinutes(5));
 
     private readonly ILogger<RestartService> _logger;
     private readonly IConanServerUtils _serverUtils;
@@ -41,10 +41,9 @@ public class RestartService : IRestartService
 
         RconClient? rcon = null;
 
+        await _semaphore.WaitAsync();
         try
         {
-            await _semaphore.WaitAsync();
-
             // The throttler checks should all be inside the area protected by _semaphore to prevent other race conditions.
 
             if (!await _pingThrottler.CanRunCommandAsync()) return RestartResponse.PingThrottled;
@@ -56,7 +55,7 @@ public class RestartService : IRestartService
 
             await gs.QueryAsync(endpoint, CancellationToken.None);
 
-            await _pingThrottler.StartTimeoutAsync();
+            await _pingThrottler.ForceStartTimeoutAsync();
 
             if (gs.Players.Count > 0) return RestartResponse.ServerNotEmpty;
 
@@ -84,7 +83,7 @@ public class RestartService : IRestartService
 
             var shutdownCommand = await rcon.ExecuteCommandAsync("shutdown");
 
-            await _restartThrottler.StartTimeoutAsync();
+            await _restartThrottler.ForceStartTimeoutAsync();
 
             await process.WaitForExitAsync(CancellationToken.None);
 

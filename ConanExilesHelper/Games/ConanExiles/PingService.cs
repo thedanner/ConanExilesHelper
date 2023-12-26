@@ -12,14 +12,13 @@ namespace ConanExilesHelper.Games.ConanExiles;
 public class PingService : IPingService
 {
     private static readonly SemaphoreSlim _semaphore = new(1);
+    private static readonly CommandThrottler _commandThrottler = new();
 
     private readonly ILogger<PingService> _logger;
-    private readonly ICommandThrottler _commandThrottler;
 
-    public PingService(ILogger<PingService> logger, ICommandThrottler commandThrottler)
+    public PingService(ILogger<PingService> logger)
     {
         _logger = logger;
-        _commandThrottler = commandThrottler;
     }
 
     public async Task<GameServer<ConanExilesRules>?> PingAsync(string hostname, ushort queryPort)

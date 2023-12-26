@@ -1,7 +1,7 @@
 ﻿Set-Location $PSScriptRoot
 
 $Runtime = 'win-x64'
-$Framework = 'net7.0'
+$Framework = 'net8.0'
 $Configuration = 'Release'
 $ServiceName = "ConanExilesHelper"
 $ServiceDescription = "Conan Exiles Helper bot service"
