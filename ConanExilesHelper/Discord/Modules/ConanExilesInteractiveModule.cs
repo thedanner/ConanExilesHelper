@@ -12,6 +12,7 @@ using Discord.WebSocket;
 using ConanExilesHelper.Configuration;
 using ConanExilesHelper.Services.ModComparison;
 using System.Threading;
+using System.Threading.Channels;
 
 namespace ConanExilesHelper.Discord.Modules;
 
@@ -82,7 +83,7 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
 
             var playersMessage = new StringBuilder();
 
-            if (response.Players.Any())
+            if (response.Players.Count != 0)
             {
                 foreach (var player in response.Players)
                 {
@@ -103,7 +104,7 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesInteractiveModule), nameof(HandlePingAsync));
+            _logger.LogError(e, "An error occurred :(");
 
             await FollowupAsync($"Sorry, there was an error. My logs have more information.");
         }
@@ -131,7 +132,7 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
                 return;
             }
 
-            if (_settings.RequireRoleIdsForRestart?.Any() == true)
+            if (_settings.RequireRoleIdsForRestart?.Count != 0)
             {
                 var userRoles = ((SocketGuildUser)Context.User).Roles.Select(r => r.Id);
                 var anyInCommon = userRoles.Intersect(_settings.RequireRoleIdsForRestart!).Any();
@@ -154,7 +155,7 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
                     return;
             };
 
-            if (!result.UpdatedMods.Any())
+            if (result.UpdatedMods.Count == 0)
             {
                 await FollowupAsync("No mod upddates were found.");
                 return;
@@ -182,11 +183,18 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
                 RestartResponse.InvalidRconPassword => "I have an incorrect RCON password configured.",
                 _ => $"I don't have a message for whatever happened, sorry ({response}).",
             };
+
+            if (response == RestartResponse.Success)
+            {
+                var mods = string.Join(", ", result.UpdatedMods.Select(m => m.Title));
+                message += $"\nUpdates found for {mods}.";
+            }
+
             await FollowupAsync(message);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesInteractiveModule), nameof(HandleRestartAsync));
+            _logger.LogError(e, "An error occurred :(");
 
             await FollowupAsync($"Sorry, there was an error. My logs have more information.");
         }
@@ -214,7 +222,7 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
                 return;
             }
 
-            if (_settings.RequireRoleIdsForRestart?.Any() == true)
+            if (_settings.RequireRoleIdsForRestart?.Count != 0)
             {
                 var userRoles = ((SocketGuildUser) Context.User).Roles.Select(r => r.Id);
                 var anyInCommon = userRoles.Intersect(_settings.RequireRoleIdsForRestart!).Any();
@@ -229,6 +237,8 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
 
             if (server is null) return;
 
+            var result = await _modVersionChecker.CheckForUpdatesAsync(CancellationToken.None);
+
             var response = await _restartService.TryRestartAsync();
             string message = response switch
             {
@@ -242,11 +252,18 @@ public class ConanExilesInteractiveModule : InteractionModuleBase<SocketInteract
                 RestartResponse.InvalidRconPassword => "I have an incorrect RCON password configured.",
                 _ => $"I don't have a message for whatever happened, sorry ({response}).",
             };
+
+            if (response == RestartResponse.Success && result.UpdatedMods.Count != 0)
+            {
+                var mods = string.Join(", ", result.UpdatedMods.Select(m => m.Title));
+                message += $"\nUpdates found for {mods}.";
+            }
+
             await FollowupAsync(message);
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error in {className}.{methodName}().", nameof(ConanExilesInteractiveModule), nameof(HandleRestartAsync));
+            _logger.LogError(e, "An error occurred :(");
 
             await FollowupAsync($"Sorry, there was an error. My logs have more information.");
         }

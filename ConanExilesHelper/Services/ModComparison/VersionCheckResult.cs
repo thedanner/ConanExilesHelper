@@ -5,7 +5,7 @@ namespace ConanExilesHelper.Services.ModComparison;
 
 public record VersionCheckResult(
     VersionCheckResultStatus Result,
-    IList<PublishedFileDetails> UpdatedMods
+    List<PublishedFileDetails> UpdatedMods
 );
 
 public enum VersionCheckResultStatus
