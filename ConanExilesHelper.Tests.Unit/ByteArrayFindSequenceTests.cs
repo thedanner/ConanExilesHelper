@@ -27,7 +27,7 @@ public class VtfSprayTests
     public void FindSequence2arg_EmptySource_Throws()
     {
         // Arrange
-        byte[] source = new byte[0];
+        byte[] source = [];
         byte[] pattern = new byte[1];
 
         // Act
@@ -55,7 +55,7 @@ public class VtfSprayTests
     public void FindSequence4arg_EmptySource_Throws()
     {
         // Arrange
-        byte[] source = new byte[0];
+        byte[] source = [];
         byte[] pattern = new byte[1];
 
         // Act
@@ -84,7 +84,7 @@ public class VtfSprayTests
     {
         // Arrange
         byte[] source = new byte[1];
-        byte[] pattern = new byte[0];
+        byte[] pattern = [];
 
         // Act
         Action act = () => source.FindSequence(pattern, 0, source.Length);
@@ -184,8 +184,8 @@ public class VtfSprayTests
     public void FindSequence_ValidSingleCharPatternAtStart_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3 };
-        byte[] pattern = new byte[] { 1 };
+        byte[] source = [1, 2, 3];
+        byte[] pattern = [1];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -198,8 +198,8 @@ public class VtfSprayTests
     public void FindSequence_ValidSingleCharPatternAtMiddle_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3 };
-        byte[] pattern = new byte[] { 2 };
+        byte[] source = [1, 2, 3];
+        byte[] pattern = [2];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -212,8 +212,8 @@ public class VtfSprayTests
     public void FindSequence_ValidSingleCharPatternAtEnd_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3 };
-        byte[] pattern = new byte[] { 3 };
+        byte[] source = [1, 2, 3];
+        byte[] pattern = [3];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -226,8 +226,8 @@ public class VtfSprayTests
     public void FindSequence_PatternNotInSource_ReturnsNegativeOne()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3 };
-        byte[] pattern = new byte[] { 4 };
+        byte[] source = [1, 2, 3];
+        byte[] pattern = [4];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -242,8 +242,8 @@ public class VtfSprayTests
     public void FindSequence_ValidMultipleCharPatternAtStart_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3, 4, 5, 6 };
-        byte[] pattern = new byte[] { 1, 2 };
+        byte[] source = [1, 2, 3, 4, 5, 6];
+        byte[] pattern = [1, 2];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -256,8 +256,8 @@ public class VtfSprayTests
     public void FindSequence_ValidMultipleCharPatternAtMiddle_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3, 4, 5, 6 };
-        byte[] pattern = new byte[] { 3, 4 };
+        byte[] source = [1, 2, 3, 4, 5, 6];
+        byte[] pattern = [3, 4];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -270,8 +270,8 @@ public class VtfSprayTests
     public void FindSequence_ValidMultipleCharPatternAtEnd_ReturnsCorrectIndex()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 3, 4, 5, 6 };
-        byte[] pattern = new byte[] { 5, 6 };
+        byte[] source = [1, 2, 3, 4, 5, 6];
+        byte[] pattern = [5, 6];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -284,8 +284,8 @@ public class VtfSprayTests
     public void FindSequence_PatternCutOffAtEnd_NegativeOne()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2 };
-        byte[] pattern = new byte[] { 2, 3 };
+        byte[] source = [1, 2];
+        byte[] pattern = [2, 3];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -298,8 +298,8 @@ public class VtfSprayTests
     public void FindSequence_PartialMatchFirstFullMatchLater_NegativeOne()
     {
         // Arrange
-        byte[] source = new byte[] { 1, 2, 1, 2, 3};
-        byte[] pattern = new byte[] { 1, 2, 3 };
+        byte[] source = [1, 2, 1, 2, 3];
+        byte[] pattern = [1, 2, 3];
 
         // Act
         var index = source.FindSequence(pattern);
@@ -312,12 +312,12 @@ public class VtfSprayTests
     public void FindSequence_ActualExample_ReturnsCorrectResult()
     {
         // Arrange
-        byte[] source = new byte[] {
+        byte[] source = [
             254, 255, 255, 255, 222,  16,   0,   0,
               4,   0, 164,   4, 255, 255, 255, 255,
              69, 165,   0,  98,  97
-        };
-        byte[] pattern = new byte[] { 0xFF, 0xFF, 0xFF, 0xFF };
+        ];
+        byte[] pattern = [0xFF, 0xFF, 0xFF, 0xFF];
 
         // Act
         var index = source.FindSequence(pattern);

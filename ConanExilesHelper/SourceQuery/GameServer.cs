@@ -25,9 +25,9 @@ public class GameServer<TRules> where TRules : new()
 
     // TSource Engine Query
     [NonSerialized]
-    private static readonly byte[] A2S_INFO = { 0x54, 0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69, 0x6E, 0x65, 0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x00 };
+    private static readonly byte[] A2S_INFO = [0x54, 0x53, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69, 0x6E, 0x65, 0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x00];
     [NonSerialized]
-    private static readonly byte[] A2S_SERVERQUERY_GETCHALLENGE = { 0x55, 0xFF, 0xFF, 0xFF, 0xFF };
+    private static readonly byte[] A2S_SERVERQUERY_GETCHALLENGE = [0x55, 0xFF, 0xFF, 0xFF, 0xFF];
     [NonSerialized]
     private static readonly byte A2S_PLAYER = 0x55;
     [NonSerialized]
@@ -125,36 +125,35 @@ public class GameServer<TRules> where TRules : new()
             infoData = await ReceiveAsync(cancellationToken);
         }
 
-        using (var br = new BinaryReader(new MemoryStream(infoData)))
+        using var br = new BinaryReader(new MemoryStream(infoData));
+
+        br.ReadByte(); // type byte, not needed
+
+        NetworkVersion = br.ReadByte();
+        Name = br.ReadNullTerminatedString();
+        Map = br.ReadNullTerminatedString();
+        GameDirectory = br.ReadNullTerminatedString();
+        GameDescription = br.ReadNullTerminatedString();
+        AppId = br.ReadInt16();
+        PlayerCount = br.ReadByte();
+        MaximumPlayerCount = br.ReadByte();
+        BotCount = br.ReadByte();
+        ServerType = (ServerType)br.ReadByte();
+        OS = (OperatingSystem)br.ReadByte();
+        RequiresPassword = br.ReadByte() == 0x01;
+        VACSecured = br.ReadByte() == 0x01;
+        GameVersion = br.ReadNullTerminatedString();
+        var edf = (ExtraDataFlags)br.ReadByte();
+
+        if (edf.HasFlag(ExtraDataFlags.GamePort)) Port = br.ReadInt16();
+        if (edf.HasFlag(ExtraDataFlags.SteamID)) SteamId = br.ReadUInt64().ToString();
+        if (edf.HasFlag(ExtraDataFlags.SpectatorInfo))
         {
-            br.ReadByte(); // type byte, not needed
-
-            NetworkVersion = br.ReadByte();
-            Name = br.ReadNullTerminatedString();
-            Map = br.ReadNullTerminatedString();
-            GameDirectory = br.ReadNullTerminatedString();
-            GameDescription = br.ReadNullTerminatedString();
-            AppId = br.ReadInt16();
-            PlayerCount = br.ReadByte();
-            MaximumPlayerCount = br.ReadByte();
-            BotCount = br.ReadByte();
-            ServerType = (ServerType)br.ReadByte();
-            OS = (OperatingSystem)br.ReadByte();
-            RequiresPassword = br.ReadByte() == 0x01;
-            VACSecured = br.ReadByte() == 0x01;
-            GameVersion = br.ReadNullTerminatedString();
-            var edf = (ExtraDataFlags)br.ReadByte();
-
-            if (edf.HasFlag(ExtraDataFlags.GamePort)) Port = br.ReadInt16();
-            if (edf.HasFlag(ExtraDataFlags.SteamID)) SteamId = br.ReadUInt64().ToString();
-            if (edf.HasFlag(ExtraDataFlags.SpectatorInfo))
-            {
-                SpectatorPort = br.ReadInt16();
-                SpectatorName = br.ReadNullTerminatedString();
-            }
-            if (edf.HasFlag(ExtraDataFlags.GameTagData)) GameTagData = br.ReadNullTerminatedString();
-            if (edf.HasFlag(ExtraDataFlags.GameID)) GameID = br.ReadUInt64().ToString();
+            SpectatorPort = br.ReadInt16();
+            SpectatorName = br.ReadNullTerminatedString();
         }
+        if (edf.HasFlag(ExtraDataFlags.GameTagData)) GameTagData = br.ReadNullTerminatedString();
+        if (edf.HasFlag(ExtraDataFlags.GameID)) GameID = br.ReadUInt64().ToString();
     }
 
     public async Task RefreshPlayerInfoAsync(CancellationToken cancellationToken)
@@ -167,15 +166,14 @@ public class GameServer<TRules> where TRules : new()
         _challengeBytes[0] = A2S_PLAYER;
         await SendAsync(_challengeBytes, cancellationToken);
         var playerData = await ReceiveAsync(cancellationToken);
-        
-        using (var br = new BinaryReader(new MemoryStream(playerData)))
+
+        using var br = new BinaryReader(new MemoryStream(playerData));
+
+        if (br.ReadByte() != 0x44) throw new Exception("Invalid data received in response to A2S_PLAYER request");
+        var numPlayers = br.ReadByte();
+        for (int index = 0; index < numPlayers; index++)
         {
-            if (br.ReadByte() != 0x44) throw new Exception("Invalid data received in response to A2S_PLAYER request");
-            var numPlayers = br.ReadByte();
-            for (int index = 0; index < numPlayers; index++)
-            {
-                Players.Add(PlayerInfo.FromBinaryReader(br));
-            }
+            Players.Add(PlayerInfo.FromBinaryReader(br));
         }
     }
 
@@ -191,37 +189,36 @@ public class GameServer<TRules> where TRules : new()
         await SendAsync(_challengeBytes, cancellationToken);
         var ruleData = await ReceiveAsync(cancellationToken);
 
-        using (var ms = new MemoryStream(ruleData))
-        using (var br = new BinaryReader(ms))
+        using var ms = new MemoryStream(ruleData);
+        using var br = new BinaryReader(ms);
+        
+        // skip padding
+        var padding = new[]
         {
-            // skip padding
-            var padding = new[]
-            {
-                br.ReadByte(),
-                br.ReadByte(),
-                br.ReadByte(),
-                br.ReadByte(),
-            };
+            br.ReadByte(),
+            br.ReadByte(),
+            br.ReadByte(),
+            br.ReadByte(),
+        };
 
-            // Some games, like apparently Conan Exiles, don't return padding.
-            if (padding[0] != 0xFF
-                && padding[1] != 0xFF
-                && padding[2] != 0xFF
-                && padding[3] != 0xFF)
-            {
-                ms.Position -= padding.Length;
-            }
-
-            // Char value of 'E'
-            if (br.ReadByte() != 0x45) throw new Exception("Invalid data received in response to A2S_RULES request");
-            var numRules = br.ReadUInt16();
-
-            for (int index = 0; index < numRules; index++)
-            {
-                RawRules.Add(br.ReadNullTerminatedString(), br.ReadNullTerminatedString());
-            }
-            Rules = _ruleParser.FromDictionary(RawRules);
+        // Some games, like apparently Conan Exiles, don't return padding.
+        if (padding[0] != 0xFF
+            && padding[1] != 0xFF
+            && padding[2] != 0xFF
+            && padding[3] != 0xFF)
+        {
+            ms.Position -= padding.Length;
         }
+
+        // Char value of 'E'
+        if (br.ReadByte() != 0x45) throw new Exception("Invalid data received in response to A2S_RULES request");
+        var numRules = br.ReadUInt16();
+
+        for (int index = 0; index < numRules; index++)
+        {
+            RawRules.Add(br.ReadNullTerminatedString(), br.ReadNullTerminatedString());
+        }
+        Rules = _ruleParser.FromDictionary(RawRules);
     }
 
     private async Task GetChallengeDataAsync(CancellationToken cancellationToken)
@@ -270,7 +267,7 @@ public class GameServer<TRules> where TRules : new()
                 // locate first packet and handle out of order packets
                 while (payloadOffset == -1)
                 {
-                    payloadOffset = packet.FindSequence(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF }, 0, 18);
+                    payloadOffset = packet.FindSequence([0xFF, 0xFF, 0xFF, 0xFF], 0, 18);
 
                     // locate payload offset in compressed packet
                     if (payloadOffset == -1)

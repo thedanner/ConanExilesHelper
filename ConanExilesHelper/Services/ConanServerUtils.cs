@@ -25,7 +25,7 @@ public class ConanServerUtils : IConanServerUtils
     public Process? GetConanServerProcess()
     {
         var processes = Process.GetProcessesByName("ConanSandboxServer");
-        if (!processes.Any()) return null;
+        if (processes.Length == 0) return null;
 
         var process = processes.First();
 
@@ -95,6 +95,6 @@ public class ConanServerUtils : IConanServerUtils
     public bool IsSteamCmdRunning()
     {
         var processes = Process.GetProcessesByName("steamcmd");
-        return processes.Any();
+        return processes.Length != 0;
     }
 }

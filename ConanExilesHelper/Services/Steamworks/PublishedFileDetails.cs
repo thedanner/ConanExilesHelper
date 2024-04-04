@@ -54,7 +54,17 @@ public class PublishedFileDetails
 
     // At least I'm guessing it's in bytes.
     [JsonPropertyName("file_size")]
-    public long FileSizeBytes { get; set; }
+    public string FileSizeBytesStr { get; set; } = "";
+    
+    public long? FileSizeBytes
+    {
+        get
+        {
+            if (FileSizeBytesStr is null) return null;
+            if (long.TryParse(FileSizeBytesStr, out var fileSizeBytes)) return fileSizeBytes;
+            return null;
+        }
+    }
 
     [JsonPropertyName("file_url")]
     public string FileUrl { get; set; } = "";
